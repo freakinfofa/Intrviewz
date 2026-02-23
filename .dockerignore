@@ -1,0 +1,8 @@
+node_modules
+npm-debug.log*
+assessment.db
+.git
+.gitignore
+*.md
+.env
+.dockerignore

@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Interview Assessment Portal – Sign In</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --surface2: #22263a;
+            --border: #2e3350;
+            --accent: #4f8ef7;
+            --accent2: #7c5cfc;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --text: #e8eaf6;
+            --muted: #8b90b0;
+            --radius: 14px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background-image:
+                radial-gradient(ellipse 80% 60% at 20% 10%, rgba(79, 142, 247, .13) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 80% 90%, rgba(124, 92, 252, .10) 0%, transparent 60%);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 440px;
+        }
+
+        /* Logo / header */
+        .logo {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        .logo-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            margin: 0 auto 16px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            box-shadow: 0 8px 24px rgba(79, 142, 247, .35);
+        }
+
+        .logo h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .logo p {
+            color: var(--muted);
+            font-size: .88rem;
+            margin-top: 4px;
+        }
+
+        /* Card */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 36px 36px 32px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, .45);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--surface2);
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 28px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 9px;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--muted);
+            font-family: inherit;
+            font-size: .88rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+        .tab.active {
+            background: var(--surface);
+            color: var(--text);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .3);
+        }
+
+        /* Form */
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            font-size: .82rem;
+            font-weight: 500;
+            color: var(--muted);
+            margin-bottom: 7px;
+        }
+
+        input {
+            width: 100%;
+            background: var(--surface2);
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            padding: 13px 16px;
+            color: var(--text);
+            font-size: .95rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color .2s;
+        }
+
+        input:focus {
+            border-color: var(--accent);
+        }
+
+        input::placeholder {
+            color: var(--muted);
+        }
+
+        /* Button */
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: .97rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all .2s;
+            margin-top: 6px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            color: #fff;
+            box-shadow: 0 4px 18px rgba(79, 142, 247, .35);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(79, 142, 247, .5);
+        }
+
+        .btn-primary:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Alert */
+        .alert {
+            padding: 11px 14px;
+            border-radius: 8px;
+            font-size: .85rem;
+            margin-bottom: 18px;
+            display: none;
+        }
+
+        .alert.error {
+            background: rgba(239, 68, 68, .12);
+            border: 1px solid rgba(239, 68, 68, .3);
+            color: #fca5a5;
+        }
+
+        .alert.success {
+            background: rgba(34, 197, 94, .12);
+            border: 1px solid rgba(34, 197, 94, .3);
+            color: #86efac;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        /* Spinner */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, .3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="logo">
+            <div class="logo-icon">📋</div>
+            <h1>Assessment Portal</h1>
+            <p>Interview evaluation platform</p>
+        </div>
+
+        <div class="card">
+            <div class="tabs">
+                <button class="tab active" id="tabLogin" onclick="switchTab('login')">Log In</button>
+                <button class="tab" id="tabRegister" onclick="switchTab('register')">Register</button>
+            </div>
+
+            <div id="alertBox" class="alert"></div>
+
+            <!-- Login form -->
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="loginEmail">Email Address</label>
+                    <input type="email" id="loginEmail" placeholder="you@example.com" required />
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••" required />
+                </div>
+                <button type="submit" class="btn btn-primary" id="loginBtn">Log In</button>
+            </form>
+
+            <!-- Register form -->
+            <form id="registerForm" style="display:none;" onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label for="regName">Full Name</label>
+                    <input type="text" id="regName" placeholder="Jane Smith" required />
+                </div>
+                <div class="form-group">
+                    <label for="regEmail">Email Address</label>
+                    <input type="email" id="regEmail" placeholder="you@example.com" required />
+                </div>
+                <div class="form-group">
+                    <label for="regPassword">Password</label>
+                    <input type="password" id="regPassword" placeholder="Min. 6 characters" minlength="6" required />
+                </div>
+                <button type="submit" class="btn btn-primary" id="registerBtn">Create Account</button>
+            </form>
+        </div>
+        <a href="admin-login.html"
+            style="display:block;text-align:center;margin-top:18px;color:#4a5080;font-size:.75rem;text-decoration:none;">Administrator
+            access</a>
+    </div>
+
+    <script>
+        const API = '/api';
+
+        // Redirect if already logged in
+        if (sessionStorage.getItem('token')) {
+            window.location.href = 'dashboard.html';
+        }
+
+        function switchTab(tab) {
+            const isLogin = tab === 'login';
+            document.getElementById('tabLogin').classList.toggle('active', isLogin);
+            document.getElementById('tabRegister').classList.toggle('active', !isLogin);
+            document.getElementById('loginForm').style.display = isLogin ? '' : 'none';
+            document.getElementById('registerForm').style.display = isLogin ? 'none' : '';
+            hideAlert();
+        }
+
+        function showAlert(msg, type = 'error') {
+            const box = document.getElementById('alertBox');
+            box.textContent = msg;
+            box.className = `alert ${type} show`;
+        }
+        function hideAlert() {
+            document.getElementById('alertBox').className = 'alert';
+        }
+
+        function setLoading(btnId, loading) {
+            const btn = document.getElementById(btnId);
+            btn.disabled = loading;
+            btn.innerHTML = loading
+                ? `<span class="spinner"></span> Please wait…`
+                : (btnId === 'loginBtn' ? 'Log In' : 'Create Account');
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            hideAlert();
+            setLoading('loginBtn', true);
+            try {
+                const res = await fetch(`${API}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: document.getElementById('loginEmail').value,
+                        password: document.getElementById('loginPassword').value
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                sessionStorage.setItem('token', data.token);
+                sessionStorage.setItem('candidateName', data.name);
+                sessionStorage.setItem('candidateId', data.id);
+                window.location.href = 'dashboard.html';
+            } catch (err) {
+                showAlert(err.message || 'Login failed. Please try again.');
+            } finally {
+                setLoading('loginBtn', false);
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            hideAlert();
+            setLoading('registerBtn', true);
+            try {
+                const res = await fetch(`${API}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: document.getElementById('regName').value,
+                        email: document.getElementById('regEmail').value,
+                        password: document.getElementById('regPassword').value
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                sessionStorage.setItem('token', data.token);
+                sessionStorage.setItem('candidateName', data.name);
+                sessionStorage.setItem('candidateId', data.id);
+                window.location.href = 'dashboard.html';
+            } catch (err) {
+                showAlert(err.message || 'Registration failed. Please try again.');
+            } finally {
+                setLoading('registerBtn', false);
+            }
+        }
+    </script>
+</body>
+
+</html>

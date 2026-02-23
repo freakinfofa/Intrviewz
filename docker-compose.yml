@@ -1,0 +1,18 @@
+services:
+  assessment-portal:
+    build: .
+    image: assessment-portal:latest
+    container_name: assessment-portal
+    ports:
+      - "3000:3000"
+    volumes:
+      - assessment-data:/app/data
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+
+volumes:
+  assessment-data:
+    driver: local

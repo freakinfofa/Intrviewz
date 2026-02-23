@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard – Assessment Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --surface2: #22263a;
+            --border: #2e3350;
+            --accent: #4f8ef7;
+            --accent2: #7c5cfc;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --text: #e8eaf6;
+            --muted: #8b90b0;
+            --radius: 14px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding-bottom: 60px;
+            background-image:
+                radial-gradient(ellipse 70% 40% at 10% 5%, rgba(79, 142, 247, .10) 0%, transparent 60%),
+                radial-gradient(ellipse 50% 40% at 90% 95%, rgba(124, 92, 252, .08) 0%, transparent 60%);
+        }
+
+        /* ── Top Nav ── */
+        nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 40px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(26, 29, 39, .85);
+            backdrop-filter: blur(12px);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .nav-brand-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .95rem;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .nav-user {
+            font-size: .85rem;
+            color: var(--muted);
+        }
+
+        .nav-user span {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .btn-logout {
+            padding: 7px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--surface2);
+            color: var(--muted);
+            font-family: inherit;
+            font-size: .82rem;
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+        .btn-logout:hover {
+            color: var(--text);
+            border-color: var(--muted);
+        }
+
+        /* ── Main ── */
+        main {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 48px 24px 0;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* ── Module Grid ── */
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 20px;
+            margin-bottom: 52px;
+        }
+
+        .module-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 28px 24px;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: all .22s;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .module-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(79, 142, 247, .06), rgba(124, 92, 252, .06));
+            opacity: 0;
+            transition: opacity .22s;
+        }
+
+        .module-card:hover:not(.coming-soon) {
+            border-color: var(--accent);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .4);
+        }
+
+        .module-card:hover:not(.coming-soon)::before {
+            opacity: 1;
+        }
+
+        .module-card.coming-soon {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+
+        .retake-btn {
+            width: 100%;
+            padding: 10px 0;
+            border-radius: 9px;
+            border: 1.5px solid var(--accent);
+            background: rgba(79, 142, 247, .08);
+            color: var(--accent);
+            font-family: inherit;
+            font-size: .88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+        .retake-btn:hover {
+            background: rgba(79, 142, 247, .18);
+            transform: translateY(-1px);
+        }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .card-desc {
+            font-size: .83rem;
+            color: var(--muted);
+            line-height: 1.55;
+            flex: 1;
+        }
+
+        .card-meta {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        .pill {
+            font-size: .72rem;
+            padding: 3px 10px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--surface2);
+            color: var(--muted);
+        }
+
+        .pill.ready {
+            color: var(--accent);
+            border-color: rgba(79, 142, 247, .4);
+            background: rgba(79, 142, 247, .08);
+        }
+
+        .coming-tag {
+            font-size: .65rem;
+            font-weight: 600;
+            letter-spacing: .4px;
+            text-transform: uppercase;
+            color: var(--muted);
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2px 9px;
+            white-space: nowrap;
+        }
+
+        .card-tags {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 5px;
+        }
+
+        /* ── Results Table ── */
+        .results-wrap {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead th {
+            padding: 14px 20px;
+            text-align: left;
+            font-size: .75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: var(--muted);
+            background: var(--surface2);
+            border-bottom: 1px solid var(--border);
+        }
+
+        tbody tr {
+            border-bottom: 1px solid var(--border);
+            transition: background .15s;
+        }
+
+        tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background: var(--surface2);
+        }
+
+        td {
+            padding: 14px 20px;
+            font-size: .88rem;
+        }
+
+        .score-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: .82rem;
+        }
+
+        .score-badge.high {
+            background: rgba(34, 197, 94, .12);
+            color: #86efac;
+            border: 1px solid rgba(34, 197, 94, .3);
+        }
+
+        .score-badge.mid {
+            background: rgba(234, 179, 8, .12);
+            color: #fde68a;
+            border: 1px solid rgba(234, 179, 8, .3);
+        }
+
+        .score-badge.low {
+            background: rgba(239, 68, 68, .12);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, .3);
+        }
+
+        .empty-state {
+            padding: 48px;
+            text-align: center;
+            color: var(--muted);
+            font-size: .9rem;
+        }
+
+        /* ── Spinner ── */
+        .spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ── Detail Modal ── */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 24px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .2s;
+        }
+
+        .modal-overlay.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            width: 100%;
+            max-width: 680px;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 32px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, .6);
+            transform: translateY(20px);
+            transition: transform .2s;
+        }
+
+        .modal-overlay.open .modal {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .modal-header h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 1.4rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: var(--text);
+        }
+
+        .review-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .review-item:last-child {
+            border-bottom: none;
+        }
+
+        .review-icon {
+            font-size: 1rem;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .review-q {
+            font-size: .88rem;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .review-a {
+            font-size: .8rem;
+            color: var(--muted);
+        }
+
+        .correct-ans {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .wrong-ans {
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        @media (max-width: 600px) {
+            nav {
+                padding: 14px 16px;
+            }
+
+            main {
+                padding: 28px 16px 0;
+            }
+
+            thead th,
+            td {
+                padding: 12px 14px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <div class="nav-brand">
+            <div class="nav-brand-icon">📋</div>
+            Assessment Portal
+        </div>
+        <div class="nav-right">
+            <div class="nav-user">Welcome, <span id="navName">—</span></div>
+            <button class="btn-logout" onclick="logout()">Log Out</button>
+        </div>
+    </nav>
+
+    <main>
+        <!-- Modules -->
+        <div class="section-title">Available Modules</div>
+        <div class="module-grid" id="moduleGrid">
+            <div style="color:var(--muted);font-size:.9rem;display:flex;align-items:center;gap:10px;">
+                <span class="spinner"></span> Loading modules…
+            </div>
+        </div>
+
+        <!-- Past Results -->
+        <div class="section-title">Your Past Results</div>
+        <div class="results-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Module</th>
+                        <th>Score</th>
+                        <th>Correct / Total</th>
+                        <th>Date</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody">
+                    <tr>
+                        <td colspan="5" class="empty-state"><span class="spinner"></span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Detail Modal -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalTitle">Question Review</h3>
+                <button class="modal-close" onclick="closeModalDirect()">✕</button>
+            </div>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        const API = '/api';
+        const token = sessionStorage.getItem('token');
+        const candidateId = sessionStorage.getItem('candidateId');
+        const candidateName = sessionStorage.getItem('candidateName');
+
+        if (!token) window.location.href = 'index.html';
+
+        document.getElementById('navName').textContent = candidateName || '—';
+
+        function logout() {
+            sessionStorage.clear();
+            window.location.href = 'index.html';
+        }
+
+        function authHeaders() {
+            return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+        }
+
+        // ── Load Modules ──
+        async function loadModules(completedModules = new Map()) {
+            try {
+                const res = await fetch(`${API}/modules`, { headers: authHeaders() });
+                const mods = await res.json();
+                const grid = document.getElementById('moduleGrid');
+                grid.innerHTML = '';
+                mods.forEach(m => {
+                    const done = completedModules.has(m.id);
+                    const retakeOk = !!m.retakeGranted;
+                    const locked = done && !retakeOk;
+                    const bestPct = done ? completedModules.get(m.id) : null;
+                    const scoreCls = bestPct >= 80 ? 'high' : bestPct >= 60 ? 'mid' : 'low';
+
+                    const el = document.createElement('div');
+                    // Resolve where clicking the module takes the user:
+                    // legacy modules have an external url, new DB-only modules use quiz.html
+                    const quizUrl = m.url ? m.url : `quiz.html?module=${encodeURIComponent(m.id)}`;
+
+                    el.className = 'module-card' + (m.ready ? '' : ' coming-soon');
+                    el.innerHTML = `
+          <div class="card-tags">
+            ${!m.ready ? '<span class="coming-tag">Coming Soon</span>' : ''}
+            ${done ? `<span class="coming-tag" style="background:rgba(34,197,94,.15);color:#86efac;border-color:rgba(34,197,94,.3);">✓ Completed</span>` : ''}
+            ${retakeOk ? `<span class="coming-tag" style="background:rgba(79,142,247,.15);color:#93c5fd;border-color:rgba(79,142,247,.3);">↺ Retake Granted</span>` : ''}
+          </div>
+          <div class="card-icon">${m.icon}</div>
+          <div>
+            <div class="card-title">${m.name}</div>
+            <div class="card-desc">${m.desc}</div>
+          </div>
+          <div class="card-meta">
+            <span class="pill ${m.ready ? 'ready' : ''}">​${m.ready ? '● Ready' : 'Coming Soon'}</span>
+            <span class="pill">${m.questions} Questions</span>
+            <span class="pill">Multiple Choice</span>
+            ${done ? `<span class="pill score-badge ${scoreCls}" style="font-size:.72rem;">Best: ${bestPct}%</span>` : ''}
+          </div>
+          ${m.ready && !locked ? `
+          <div style="margin-top:14px;">
+            <button class="retake-btn" data-url="${quizUrl}">${retakeOk ? '↺ Retake Module' : (localStorage.getItem('progress_' + candidateId + '_' + m.id) ? '▶ Resume' : '▶ Start Module')}</button>
+          </div>` : ''}`;
+
+                    // In-Progress badge
+                    const inProgress = !done && !retakeOk && m.ready &&
+                        !!localStorage.getItem('progress_' + candidateId + '_' + m.id);
+                    if (inProgress) {
+                        const tagRow = el.querySelector('.card-tags');
+                        if (tagRow) {
+                            const badge = document.createElement('span');
+                            badge.className = 'coming-tag';
+                            badge.style.cssText = 'background:rgba(245,158,11,.15);color:#fcd34d;border-color:rgba(245,158,11,.3);';
+                            badge.textContent = '\u23f8 In Progress';
+                            tagRow.appendChild(badge);
+                        }
+                    }
+
+                    // Button click (stop propagation so card click doesn't double-fire)
+                    const btn = el.querySelector('.retake-btn');
+                    if (btn) {
+                        btn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            window.location.href = btn.dataset.url;
+                        });
+                    }
+                    // Card click only for non-locked ready modules
+                    if (m.ready && !locked) {
+                        el.addEventListener('click', () => { window.location.href = quizUrl; });
+                    }
+                    grid.appendChild(el);
+                    return quizUrl; // used by caller to build MODULE_META
+                });
+            } catch {
+                document.getElementById('moduleGrid').innerHTML =
+                    '<p style="color:var(--danger);font-size:.9rem;">Failed to load modules. Is the server running?</p>';
+            }
+        }
+
+        // ── Load Results ──
+        async function loadResults() {
+            const tbody = document.getElementById('resultsBody');
+            try {
+                const res = await fetch(`${API}/results/${candidateId}`, { headers: authHeaders() });
+                const results = await res.json();
+
+                // Build map of moduleId → best score for module cards
+                const completedModules = new Map();
+                results.forEach(r => {
+                    const prev = completedModules.get(r.module_id) ?? -1;
+                    if (r.pct > prev) completedModules.set(r.module_id, r.pct);
+                });
+                loadModules(completedModules);
+
+                if (!results.length) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No tests completed yet. Select a module above to get started!</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = '';
+
+                // ── Completed results ──
+                results.forEach(r => {
+                    const pct = r.pct;
+                    const cls = pct >= 80 ? 'high' : pct >= 60 ? 'mid' : 'low';
+                    const date = new Date(r.submitted_at + 'Z').toLocaleString();
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+          <td><strong>${r.module_name}</strong></td>
+          <td><span class="score-badge ${cls}">${pct}%</span></td>
+          <td>${r.score} / ${r.total}</td>
+          <td style="color:var(--muted);font-size:.82rem;">${date}</td>
+          <td><button onclick="showDetail(${r.id})" style="background:none;border:1px solid var(--border);color:var(--accent);padding:5px 12px;border-radius:7px;cursor:pointer;font-size:.8rem;font-family:inherit;">Review</button></td>`;
+                    tbody.appendChild(tr);
+                });
+
+                // ── In-progress rows from localStorage ──
+                // Build MODULE_META dynamically from the modules API
+                let allMods = [];
+                try {
+                    const mr = await fetch(`${API}/modules`, { headers: authHeaders() });
+                    allMods = await mr.json();
+                } catch { /* ignore */ }
+
+                allMods.filter(m => m.ready).forEach(m => {
+                    const quizUrl = m.url ? m.url : `quiz.html?module=${encodeURIComponent(m.id)}`;
+                    try {
+                        const saved = JSON.parse(localStorage.getItem('progress_' + candidateId + '_' + m.id));
+                        if (!saved || !Array.isArray(saved)) return;
+                        const answered = saved.filter(v => v !== null).length;
+                        if (answered === 0) return;
+                        const tr = document.createElement('tr');
+                        tr.style.opacity = '0.82';
+                        tr.innerHTML = `
+          <td><strong>${m.name}</strong></td>
+          <td><span class="score-badge" style="background:rgba(245,158,11,.15);color:#fcd34d;border-color:rgba(245,158,11,.3);font-size:.72rem;">In Progress</span></td>
+          <td style="color:var(--muted);">${answered} / ${m.questions} answered</td>
+          <td style="color:var(--muted);font-size:.82rem;">Not submitted</td>
+          <td><button onclick="window.location.href='${quizUrl}'" style="background:none;border:1px solid var(--border);color:var(--accent);padding:5px 12px;border-radius:7px;cursor:pointer;font-size:.8rem;font-family:inherit;">&#9654; Resume</button></td>`;
+                        tbody.appendChild(tr);
+                    } catch { /* ignore */ }
+                });
+
+                // Store results for modal
+                window._results = results;
+            } catch {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state" style="color:var(--danger);">Failed to load results.</td></tr>';
+                loadModules(); // still load modules even if results fail
+            }
+        }
+
+        function showDetail(sessionId) {
+            const r = (window._results || []).find(x => x.id === sessionId);
+            if (!r) return;
+            document.getElementById('modalTitle').textContent = `Review – ${r.module_name} (${r.pct}%)`;
+            const body = document.getElementById('modalBody');
+            body.innerHTML = '';
+            (r.answers || []).forEach((a, i) => {
+                const correct = !!a.is_correct;
+                const skipped = !a.chosen_option;
+                let ansHtml = '';
+                if (skipped) {
+                    ansHtml = `<span style="color:var(--muted)">Not answered</span>`;
+                } else if (correct) {
+                    ansHtml = `<span class="correct-ans">✓ ${a.chosen_option}</span>`;
+                } else {
+                    ansHtml = `<span class="wrong-ans">✗ ${a.chosen_option}</span> <span style="color:var(--muted);font-size:.78rem;">— Incorrect</span>`;
+                }
+                const div = document.createElement('div');
+                div.className = 'review-item';
+                div.innerHTML = `
+        <div class="review-icon">${correct ? '✅' : skipped ? '⬜' : '❌'}</div>
+        <div>
+          <div class="review-q">Q${i + 1}. ${a.question_text}</div>
+          <div class="review-a">${ansHtml}</div>
+        </div>`;
+                body.appendChild(div);
+            });
+            document.getElementById('modalOverlay').classList.add('open');
+        }
+
+        function closeModal(e) {
+            if (e.target === document.getElementById('modalOverlay')) closeModalDirect();
+        }
+        function closeModalDirect() {
+            document.getElementById('modalOverlay').classList.remove('open');
+        }
+
+        // loadModules is called by loadResults once completion data is known
+        loadResults();
+    </script>
+</body>
+
+</html>

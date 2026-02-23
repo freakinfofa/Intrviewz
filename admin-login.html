@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Login – Assessment Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --surface2: #22263a;
+            --border: #2e3350;
+            --accent: #f59e0b;
+            --accent2: #f97316;
+            --danger: #ef4444;
+            --text: #e8eaf6;
+            --muted: #8b90b0;
+            --radius: 14px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background-image:
+                radial-gradient(ellipse 80% 60% at 20% 10%, rgba(245, 158, 11, .10) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 80% 90%, rgba(249, 115, 22, .08) 0%, transparent 60%);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 16px;
+            margin: 0 auto 14px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.7rem;
+            box-shadow: 0 8px 24px rgba(245, 158, 11, .35);
+        }
+
+        .logo h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+
+        .logo p {
+            color: var(--muted);
+            font-size: .85rem;
+            margin-top: 4px;
+        }
+
+        .admin-badge {
+            display: inline-block;
+            margin-top: 8px;
+            font-size: .68rem;
+            font-weight: 700;
+            letter-spacing: .5px;
+            text-transform: uppercase;
+            background: rgba(245, 158, 11, .15);
+            color: var(--accent);
+            border: 1px solid rgba(245, 158, 11, .3);
+            border-radius: 20px;
+            padding: 3px 10px;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 32px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, .45);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: .82rem;
+            font-weight: 500;
+            color: var(--muted);
+            margin-bottom: 7px;
+        }
+
+        input {
+            width: 100%;
+            background: var(--surface2);
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            padding: 13px 16px;
+            color: var(--text);
+            font-size: .95rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color .2s;
+        }
+
+        input:focus {
+            border-color: var(--accent);
+        }
+
+        input::placeholder {
+            color: var(--muted);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 13px;
+            border: none;
+            border-radius: 10px;
+            font-size: .95rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all .2s;
+            margin-top: 6px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            color: #fff;
+            box-shadow: 0 4px 18px rgba(245, 158, 11, .3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(245, 158, 11, .45);
+        }
+
+        .btn:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .alert {
+            padding: 11px 14px;
+            border-radius: 8px;
+            font-size: .85rem;
+            margin-bottom: 16px;
+            display: none;
+            background: rgba(239, 68, 68, .12);
+            border: 1px solid rgba(239, 68, 68, .3);
+            color: #fca5a5;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: var(--muted);
+            font-size: .82rem;
+            text-decoration: none;
+            transition: color .2s;
+        }
+
+        .back-link:hover {
+            color: var(--text);
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            border: 2px solid rgba(255, 255, 255, .3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="logo">
+            <div class="logo-icon">🛡️</div>
+            <h1>Admin Access</h1>
+            <p>Assessment Portal</p>
+            <span class="admin-badge">Restricted</span>
+        </div>
+
+        <div class="card">
+            <div id="alertBox" class="alert"></div>
+            <form onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="email">Admin Email</label>
+                    <input type="email" id="email" placeholder="admin@company.com" required />
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="••••••••" required />
+                </div>
+                <button type="submit" class="btn" id="loginBtn">Sign In as Admin</button>
+            </form>
+        </div>
+        <a class="back-link" href="index.html">← Back to Candidate Login</a>
+    </div>
+
+    <script>
+        const API = '/api';
+
+        // Already logged in as admin?
+        const token = sessionStorage.getItem('adminToken');
+        if (token) window.location.href = 'admin.html';
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const alertBox = document.getElementById('alertBox');
+            alertBox.className = 'alert';
+            const btn = document.getElementById('loginBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>Signing in…';
+
+            try {
+                const res = await fetch(`${API}/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: document.getElementById('email').value,
+                        password: document.getElementById('password').value
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Login failed');
+                sessionStorage.setItem('adminToken', data.token);
+                window.location.href = 'admin.html';
+            } catch (err) {
+                alertBox.textContent = err.message;
+                alertBox.className = 'alert show';
+                btn.disabled = false;
+                btn.textContent = 'Sign In as Admin';
+            }
+        }
+    </script>
+</body>
+
+</html>
