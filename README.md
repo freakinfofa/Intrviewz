@@ -2,6 +2,16 @@
 
 A modern, responsive, and secure assessment platform built for creating, managing, and taking customizable quiz modules.
 
+<br>
+<p align="center">
+  <img src="Public/user_Dashboard.png" width="45%" alt="User Dashboard">
+  <img src="Public/user_questions.png" width="45%" alt="Quiz Interface">
+</p>
+<p align="center">
+  <img src="Public/admin_Dashboard.png" width="45%" alt="Admin Dashboard">
+  <img src="Public/admin_login.png" width="45%" alt="Admin Login">
+</p>
+<br>
 ## 🚀 Features
 
 ### For Candidates
