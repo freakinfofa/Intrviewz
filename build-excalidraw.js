@@ -1,15 +1,16 @@
 const esbuild = require('esbuild');
 const path = require('path');
 
+// Build the bundle with React included
 esbuild.build({
     entryPoints: [path.join(__dirname, 'excalidraw-app.jsx')],
     bundle: true,
     outfile: path.join(__dirname, 'public', 'js', 'excalidraw-bundle.js'),
     format: 'iife',
-    globalName: 'ExcalidrawApp',
-    minify: true,
+    platform: 'browser',
+    minify: false, // Keep unminified for debugging
     sourcemap: false,
-    target: ['es2020'],
+    target: ['chrome90'],
     jsx: 'automatic',
     jsxImportSource: 'react',
     define: {
@@ -17,16 +18,7 @@ esbuild.build({
         'process.env.IS_PREACT': 'false'
     },
     loader: {
-        '.js': 'jsx',
-        '.jsx': 'jsx',
-        '.woff2': 'file',
-        '.woff': 'file',
-        '.ttf': 'file',
-        '.png': 'file',
-        '.svg': 'file'
-    },
-    alias: {
-        // Resolve Excalidraw's internal imports
+        '.jsx': 'jsx'
     },
     logLevel: 'info'
 }).then(() => {

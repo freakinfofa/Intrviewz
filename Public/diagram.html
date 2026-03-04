@@ -382,6 +382,11 @@
     <script src="js/app.js"></script>
     <script src="js/excalidraw-bundle.js"></script>
     <script>
+        if (!window.ExcalidrawMount) {
+            console.error('Excalidraw failed to load. Check bundle build.');
+        }
+    </script>
+    <script>
         // ── Auth check ──
         const token = sessionStorage.getItem('token');
         const candidateId = sessionStorage.getItem('candidateId');
@@ -453,7 +458,10 @@
 
         // ── Save Draft (to localStorage) ──
         function saveDraft() {
-            if (!window.ExcalidrawMount) return;
+            if (!window.ExcalidrawMount) {
+                console.warn('ExcalidrawMount not ready');
+                return;
+            }
             const sceneData = ExcalidrawMount.getSceneData();
             if (!sceneData) return;
 
@@ -478,11 +486,18 @@
         }
 
         // Auto-save draft every 30 seconds
-        setInterval(() => { if (window.ExcalidrawMount && ExcalidrawMount.hasContent()) saveDraft(); }, 30000);
+        setInterval(() => { 
+            if (window.ExcalidrawMount && ExcalidrawMount.hasContent()) {
+                saveDraft();
+            }
+        }, 30000);
 
         // ── Submit Diagram ──
         async function submitDiagram() {
-            if (!window.ExcalidrawMount) return alert('Editor is still loading. Please wait.');
+            if (!window.ExcalidrawMount) {
+                console.error('ExcalidrawMount not ready');
+                return alert('Editor is still loading. Please wait.');
+            }
 
             if (!ExcalidrawMount.hasContent()) {
                 return alert('Please draw something on the canvas before submitting.');
@@ -581,6 +596,12 @@
             }
 
             // Render Excalidraw
+            if (!window.ExcalidrawMount) {
+                console.error('ExcalidrawMount not available - Excalidraw may not have loaded from CDN');
+                document.getElementById('canvasLoading').querySelector('p').textContent = 
+                    'Error: Unable to load diagram editor. Please refresh the page.';
+                return;
+            }
             ExcalidrawMount.render('excalidrawContainer', {
                 initialData: initialData,
                 viewMode: false,
