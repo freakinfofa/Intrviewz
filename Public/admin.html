@@ -928,7 +928,11 @@
         <!-- ── Question Modules Section ── -->
         <div class="section-header" style="margin-top:36px;">
             <div class="section-title">Question Modules</div>
-            <button class="btn-export" id="btnNewModule" onclick="openNewModuleModal()">+ New Module</button>
+            <div style="display:flex;gap:8px;">
+                <button class="btn-export" onclick="triggerModuleImport()">⬆ Import Module</button>
+                <input type="file" id="moduleImportInput" accept=".json,application/json" style="display:none;" onchange="handleModuleImport(event)" />
+                <button class="btn-export" id="btnNewModule" onclick="openNewModuleModal()">+ New Module</button>
+            </div>
         </div>
         <div class="module-grid" id="moduleGrid">
             <div style="color:var(--muted);font-size:.9rem;padding:20px 0;"><span class="spinner"></span></div>
@@ -1578,6 +1582,113 @@
             }
         }
 
+        // ── Module Export ─────────────────────────────────────
+        async function exportModule(moduleId) {
+            try {
+                const res = await fetch(`${API}/admin/modules/${moduleId}/export`, { headers: authHeaders() });
+                if (!res.ok) {
+                    const err = await res.json();
+                    alert('Export failed: ' + (err.error || 'Unknown error'));
+                    return;
+                }
+                const data = await res.json();
+                const filename = `${moduleId}-backup-${new Date().toISOString().slice(0, 10)}.json`;
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                alert('Export failed: ' + err.message);
+            }
+        }
+
+        // ── Module Import ─────────────────────────────────────
+        function triggerModuleImport() {
+            document.getElementById('moduleImportInput').click();
+        }
+
+        async function handleModuleImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+
+                // Validate the import data
+                if (!data.module || !data.module.id || !data.module.name) {
+                    alert('Invalid module backup file. Missing module data.');
+                    return;
+                }
+
+                // Check if module already exists
+                const existing = _allAdminModules.find(m => m.id === data.module.id);
+                let overwrite = false;
+                if (existing) {
+                    const action = confirm(
+                        `A module with ID "${data.module.id}" already exists ("${existing.name}").\n\n` +
+                        `Click "OK" to REPLACE the existing module with this backup.\n` +
+                        `Click "Cancel" to abort.\n\n` +
+                        `WARNING: Replacing will delete the existing module and all its questions.`
+                    );
+                    if (!action) return;
+                    overwrite = true;
+                }
+
+                // Confirm import with summary
+                const questionCount = data.questions ? data.questions.length : 0;
+                const action = confirm(
+                    `${overwrite ? 'Replace' : 'Import'} module:\n\n` +
+                    `Name: ${data.module.name}\n` +
+                    `ID: ${data.module.id}\n` +
+                    `Questions: ${questionCount}\n\n` +
+                    `Proceed?`
+                );
+                if (!action) return;
+
+                // Send import request
+                const res = await fetch(`${API}/admin/modules/import`, {
+                    method: 'POST',
+                    headers: authHeaders(),
+                    body: JSON.stringify({
+                        module: data.module,
+                        questions: data.questions || [],
+                        overwrite: overwrite
+                    })
+                });
+
+                const result = await res.json();
+
+                if (!res.ok) {
+                    alert('Import failed: ' + (result.error || 'Unknown error'));
+                    return;
+                }
+
+                const actionText = result.action === 'overwritten' ? 'overwritten' : 'imported';
+                alert(
+                    `Module "${result.id}" ${actionText} successfully.\n\n` +
+                    `Questions imported: ${result.questionsImported}\n` +
+                    `Total questions: ${result.totalQuestions}`
+                );
+
+                // Refresh module list
+                await loadModules();
+
+            } catch (err) {
+                if (err instanceof SyntaxError) {
+                    alert('Invalid JSON file. Please select a valid module backup file.');
+                } else {
+                    alert('Import failed: ' + err.message);
+                }
+            } finally {
+                // Clear file input so same file can be selected again
+                event.target.value = '';
+            }
+        }
+
         // ── Module Manager ──────────────────────────────────────
         let _editingModuleId = null;
         let _allAdminModules = [];
@@ -1618,6 +1729,7 @@
                     </div>
                     <div class="module-card-actions">
                         <button class="btn-mod accent" onclick="openQEditor('${m.id}', '${escAttr(m.name)}', '${m.module_type || "quiz"}')">✏️ ${m.module_type === 'diagram' ? 'Edit Config' : 'Edit Questions'}</button>
+                        <button class="btn-mod" onclick="exportModule('${m.id}')" title="Export/Backup module">⬇ Export</button>
                         <button class="btn-mod" onclick="toggleModule('${m.id}', this)">${m.is_active ? '⏸ Deactivate' : '▶ Activate'}</button>
                         <button class="btn-mod danger" onclick="deleteModule('${m.id}', '${escAttr(m.name)}', this)">🗑</button>
                     </div>`;

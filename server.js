@@ -389,6 +389,102 @@ app.delete('/api/admin/modules/:id', adminAuth, (req, res) => {
     res.json({ ok: true });
 });
 
+// ── GET /api/admin/modules/:id/export ───────────────────
+// Export a complete module with all questions as JSON
+app.get('/api/admin/modules/:id/export', adminAuth, (req, res) => {
+    const mod = db.prepare('SELECT id, name, icon, description, module_type, sort_order FROM modules WHERE id = ?').get(req.params.id);
+    if (!mod) return res.status(404).json({ error: 'Module not found.' });
+    
+    const questions = db.prepare(
+        'SELECT question, opt0, opt1, opt2, opt3, correct_idx, question_type, model_answer, sort_order FROM questions WHERE module_id = ? ORDER BY sort_order, id'
+    ).all(req.params.id);
+    
+    const exportData = {
+        exportVersion: '1.0',
+        exportDate: new Date().toISOString(),
+        module: mod,
+        questions: questions
+    };
+    
+    res.json(exportData);
+});
+
+// ── POST /api/admin/modules/import ──────────────────────
+// Import a complete module with all questions from JSON
+app.post('/api/admin/modules/import', adminAuth, (req, res) => {
+    const { module, questions, overwrite } = req.body;
+    
+    if (!module || !module.id || !module.name)
+        return res.status(400).json({ error: 'Module data with id and name is required.' });
+    
+    if (!/^[a-z0-9-]+$/.test(module.id))
+        return res.status(400).json({ error: 'Module ID must be lowercase letters, numbers, and hyphens only.' });
+    
+    // Check if module already exists
+    const existing = db.prepare('SELECT id FROM modules WHERE id = ?').get(module.id);
+    if (existing && !overwrite)
+        return res.status(409).json({ error: 'A module with that ID already exists. Set overwrite=true to replace it.' });
+    
+    const importTx = db.transaction(() => {
+        // Delete existing module and questions if overwriting
+        if (existing && overwrite) {
+            db.prepare('DELETE FROM questions WHERE module_id = ?').run(module.id);
+            db.prepare('DELETE FROM modules WHERE id = ?').run(module.id);
+        }
+        
+        // Create the module
+        db.prepare(
+            `INSERT INTO modules (id, name, icon, description, url, module_type, is_active, sort_order)
+             VALUES (?, ?, ?, ?, ?, ?, 1, ?)`
+        ).run(
+            module.id,
+            module.name.trim(),
+            module.icon || '📋',
+            (module.description || '').trim(),
+            module.url || null,
+            module.module_type || 'quiz',
+            module.sort_order ?? 99
+        );
+        
+        // Insert questions
+        if (questions && questions.length > 0) {
+            const insertQuestion = db.prepare(
+                `INSERT INTO questions (module_id, question, opt0, opt1, opt2, opt3, correct_idx, question_type, model_answer, sort_order)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            );
+            
+            questions.forEach((q, i) => {
+                insertQuestion.run(
+                    module.id,
+                    q.question?.trim() || '',
+                    q.opt0?.trim() || null,
+                    q.opt1?.trim() || null,
+                    q.opt2?.trim() || null,
+                    q.opt3?.trim() || null,
+                    q.correct_idx !== undefined ? q.correct_idx : null,
+                    q.question_type || 'multiple_choice',
+                    q.model_answer?.trim() || null,
+                    q.sort_order !== undefined ? q.sort_order : i
+                );
+            });
+        }
+    });
+    
+    try {
+        importTx();
+        const qCount = db.prepare('SELECT COUNT(*) as c FROM questions WHERE module_id = ?').get(module.id).c;
+        res.json({ 
+            ok: true, 
+            id: module.id, 
+            action: existing && overwrite ? 'overwritten' : 'created',
+            questionsImported: questions?.length || 0,
+            totalQuestions: qCount
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Import failed: ' + err.message });
+    }
+});
+
 // ── GET /api/admin/modules/:id/questions ─────────────────
 // Returns questions WITH correct answer index — admin-only
 app.get('/api/admin/modules/:id/questions', adminAuth, (req, res) => {
