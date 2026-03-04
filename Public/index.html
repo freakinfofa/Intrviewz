@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Interview Assessment Portal – Sign In</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="css/styles.css" />
+</head>
+
+<body class="body-centered">
+    <div class="container">
+        <div class="logo">
+            <img src="images/logo.png" alt="Assessment Portal Logo" class="brand-logo" />
+            <h1>Assessment Portal</h1>
+            <p>Interview evaluation platform</p>
+        </div>
+
+        <div class="hero-image">
+            <img src="images/hero.png" alt="Assessment Platform Illustration" />
+        </div>
+
+        <div class="card">
+            <div class="tabs">
+                <button class="tab active" id="tabLogin" onclick="switchTab('login')">Log In</button>
+                <button class="tab" id="tabRegister" onclick="switchTab('register')">Register</button>
+            </div>
+
+            <div id="alertBox" class="alert"></div>
+
+            <!-- Login form -->
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="loginEmail">Email Address</label>
+                    <input type="email" id="loginEmail" placeholder="you@example.com" required />
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••" required />
+                </div>
+                <button type="submit" class="btn btn-primary" id="loginBtn">Log In</button>
+            </form>
+
+            <!-- Register form -->
+            <form id="registerForm" style="display:none;" onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label for="regName">Full Name</label>
+                    <input type="text" id="regName" placeholder="Jane Smith" required />
+                </div>
+                <div class="form-group">
+                    <label for="regEmail">Email Address</label>
+                    <input type="email" id="regEmail" placeholder="you@example.com" required />
+                </div>
+                <div class="form-group">
+                    <label for="regPassword">Password</label>
+                    <input type="password" id="regPassword" placeholder="Min. 6 characters" minlength="6" required />
+                </div>
+                <button type="submit" class="btn btn-primary" id="registerBtn">Create Account</button>
+            </form>
+        </div>
+        <a href="admin-login.html"
+            style="display:block;text-align:center;margin-top:18px;color:#4a5080;font-size:.75rem;text-decoration:none;">Administrator
+            access</a>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        // Redirect if already logged in
+        if (sessionStorage.getItem('token')) {
+            window.location.href = 'dashboard.html';
+        }
+
+        function switchTab(tab) {
+            const isLogin = tab === 'login';
+            document.getElementById('tabLogin').classList.toggle('active', isLogin);
+            document.getElementById('tabRegister').classList.toggle('active', !isLogin);
+            document.getElementById('loginForm').style.display = isLogin ? '' : 'none';
+            document.getElementById('registerForm').style.display = isLogin ? 'none' : '';
+            hideAlert();
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            hideAlert();
+            setLoading('loginBtn', true, 'Log In');
+            try {
+                const res = await fetch(`${API}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: document.getElementById('loginEmail').value,
+                        password: document.getElementById('loginPassword').value
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                sessionStorage.setItem('token', data.token);
+                sessionStorage.setItem('candidateName', data.name);
+                sessionStorage.setItem('candidateId', data.id);
+                window.location.href = 'dashboard.html';
+            } catch (err) {
+                showAlert(err.message || 'Login failed. Please try again.');
+            } finally {
+                setLoading('loginBtn', false, 'Log In');
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            hideAlert();
+            setLoading('registerBtn', true, 'Create Account');
+            try {
+                const res = await fetch(`${API}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: document.getElementById('regName').value,
+                        email: document.getElementById('regEmail').value,
+                        password: document.getElementById('regPassword').value
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                sessionStorage.setItem('token', data.token);
+                sessionStorage.setItem('candidateName', data.name);
+                sessionStorage.setItem('candidateId', data.id);
+                window.location.href = 'dashboard.html';
+            } catch (err) {
+                showAlert(err.message || 'Registration failed. Please try again.');
+            } finally {
+                setLoading('registerBtn', false, 'Create Account');
+            }
+        }
+    </script>
+</body>
+
+</html>

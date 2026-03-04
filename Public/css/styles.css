@@ -1,0 +1,468 @@
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3350;
+    --accent: #4f8ef7;
+    --accent2: #7c5cfc;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    /* mapped from admin.html --warn */
+    --danger: #ef4444;
+    --text: #e8eaf6;
+    --muted: #8b90b0;
+    --radius: 14px;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    /* The login page uses center align, but others use padding-bottom. We'll strip specific layout from body and define classes for pages */
+    background-image:
+        radial-gradient(ellipse 70% 40% at 10% 5%, rgba(79, 142, 247, .10) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 90% 95%, rgba(124, 92, 252, .08) 0%, transparent 60%);
+}
+
+.body-centered {
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background-image:
+        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(79, 142, 247, .13) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 90%, rgba(124, 92, 252, .10) 0%, transparent 60%);
+}
+
+.body-dashboard {
+    padding-bottom: 60px;
+}
+
+/* ── Spinner ── */
+.spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+}
+
+.spinner.spinner-sm {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, .3);
+    border-top-color: #fff;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ── Container / Card ── */
+.container {
+    width: 100%;
+    max-width: 440px;
+}
+
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 36px 36px 32px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, .45);
+}
+
+/* ── Buttons ── */
+.btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    font-size: .97rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all .2s;
+    margin-top: 6px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+    box-shadow: 0 4px 18px rgba(79, 142, 247, .35);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(79, 142, 247, .5);
+}
+
+.btn-primary:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-sm {
+    padding: 7px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    font-family: inherit;
+    font-size: .82rem;
+    cursor: pointer;
+    transition: all .2s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-sm:hover {
+    color: var(--text);
+    border-color: var(--muted);
+}
+
+/* ── Forms ── */
+.form-group {
+    margin-bottom: 18px;
+}
+
+label {
+    display: block;
+    font-size: .82rem;
+    font-weight: 500;
+    color: var(--muted);
+    margin-bottom: 7px;
+}
+
+input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 13px 16px;
+    color: var(--text);
+    font-size: .95rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color .2s;
+}
+
+input:focus {
+    border-color: var(--accent);
+}
+
+input::placeholder {
+    color: var(--muted);
+}
+
+select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 9px 14px;
+    color: var(--text);
+    font-size: .88rem;
+    font-family: inherit;
+    outline: none;
+    cursor: pointer;
+}
+
+select:focus {
+    border-color: var(--accent);
+}
+
+/* ── Alerts ── */
+.alert {
+    padding: 11px 14px;
+    border-radius: 8px;
+    font-size: .85rem;
+    margin-bottom: 18px;
+    display: none;
+}
+
+.alert.error {
+    background: rgba(239, 68, 68, .12);
+    border: 1px solid rgba(239, 68, 68, .3);
+    color: #fca5a5;
+}
+
+.alert.success {
+    background: rgba(34, 197, 94, .12);
+    border: 1px solid rgba(34, 197, 94, .3);
+    color: #86efac;
+}
+
+.alert.show {
+    display: block;
+}
+
+/* ── Navigation ── */
+nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 40px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(26, 29, 39, .85);
+    backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.nav-brand-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .95rem;
+}
+
+.nav-brand-icon.admin-icon {
+    background: linear-gradient(135deg, var(--warning), #f97316);
+}
+
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.nav-user {
+    font-size: .85rem;
+    color: var(--muted);
+}
+
+.nav-user span {
+    color: var(--text);
+    font-weight: 600;
+}
+
+/* ── Main content layout ── */
+main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 48px 24px 0;
+}
+
+main.admin-main {
+    max-width: 1200px;
+    padding: 40px 24px 0;
+}
+
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    min-width: 40px;
+}
+
+/* ── Modals ── */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 24px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s;
+}
+
+.modal-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    width: 100%;
+    max-width: 680px;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 32px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, .6);
+    transform: translateY(20px);
+    transition: transform .2s;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-overlay.open .modal {
+    transform: translateY(0);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+
+.modal-header h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 1.4rem;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: var(--text);
+}
+
+.modal-body {
+    overflow-y: auto;
+    padding: 0;
+}
+
+/* ── Badges/Pills ── */
+.score-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: .82rem;
+}
+
+.score-badge.high {
+    background: rgba(34, 197, 94, .12);
+    color: #86efac;
+    border: 1px solid rgba(34, 197, 94, .3);
+}
+
+.score-badge.mid {
+    background: rgba(234, 179, 8, .12);
+    color: #fde68a;
+    border: 1px solid rgba(234, 179, 8, .3);
+}
+
+.score-badge.low {
+    background: rgba(239, 68, 68, .12);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, .3);
+}
+
+@media (max-width: 600px) {
+    nav {
+        padding: 14px 16px;
+    }
+
+    main {
+        padding: 28px 16px 0;
+    }
+}
+
+/* ── Branding & Illustrations ── */
+.logo {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.logo-icon {
+    font-size: 2.4rem;
+    margin-bottom: 12px;
+}
+
+.logo h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+    background: linear-gradient(135deg, #fff, #b8c4d8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.logo p {
+    color: var(--muted);
+    font-size: .95rem;
+}
+
+.brand-logo {
+    width: 72px;
+    height: 72px;
+    object-fit: contain;
+    margin-bottom: 12px;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(79, 142, 247, 0.2);
+}
+
+.hero-image {
+    text-align: center;
+    margin-bottom: 28px;
+}
+
+.hero-image img {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--radius);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.nav-brand-img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    border-radius: 6px;
+}
+
+.empty-state-icon {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+    margin-bottom: 16px;
+    opacity: 0.8;
+}

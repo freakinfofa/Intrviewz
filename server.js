@@ -5,15 +5,24 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
 const sgMail = require('@sendgrid/mail');
 const db = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const SECRET = process.env.JWT_SECRET || 'fallback-dev-secret-change-me';
+const SECRET = process.env.JWT_SECRET;
+if (!SECRET) {
+    console.error('❌  FATAL: JWT_SECRET environment variable is required. Set it in your .env file.');
+    process.exit(1);
+}
 
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'admin@company.com').toLowerCase();
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Admin@1234';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+if (!ADMIN_PASSWORD) {
+    console.error('❌  FATAL: ADMIN_PASSWORD environment variable is required. Set it in your .env file.');
+    process.exit(1);
+}
 
 // ── SendGrid setup ────────────────────────────────────────
 const SG_KEY = process.env.SENDGRID_API_KEY || '';
@@ -28,7 +37,26 @@ if (SG_KEY && SG_KEY !== 'SG.your-api-key-here') {
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname)));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ── Serve module directories (legacy standalone quiz pages) ──
+// Express mount paths don't reliably match URL-encoded spaces,
+// so we use explicit route handlers instead.
+app.get('/AD%20Management/:file', (req, res) => {
+    res.sendFile(path.join(__dirname, 'AD Management', req.params.file));
+});
+app.get('/OneDrive%20Managament/:file', (req, res) => {
+    res.sendFile(path.join(__dirname, 'OneDrive Managament', req.params.file));
+});
+
+// ── Rate limiter for auth endpoints ──────────────────────
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,   // 15 minutes
+    max: 15,                     // limit each IP to 15 requests per window
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many attempts. Please try again later.' }
+});
 
 // ── Seed initial question banks into DB on first run ──────
 const SEED_DATA = {
@@ -167,7 +195,7 @@ function adminAuth(req, res, next) {
 }
 
 // ── POST /api/register ───────────────────────────────────
-app.post('/api/register', (req, res) => {
+app.post('/api/register', authLimiter, async (req, res) => {
     const { name, email, password } = req.body;
     if (!name || !email || !password)
         return res.status(400).json({ error: 'Name, email and password are required.' });
@@ -180,7 +208,7 @@ app.post('/api/register', (req, res) => {
     if (existing)
         return res.status(409).json({ error: 'An account with that email already exists.' });
 
-    const hash = bcrypt.hashSync(password, 10);
+    const hash = await bcrypt.hash(password, 10);
     const result = db.prepare(
         'INSERT INTO candidates (name, email, password_hash) VALUES (?, ?, ?)'
     ).run(name.trim(), email.toLowerCase(), hash);
@@ -193,13 +221,13 @@ app.post('/api/register', (req, res) => {
 });
 
 // ── POST /api/login ──────────────────────────────────────
-app.post('/api/login', (req, res) => {
+app.post('/api/login', authLimiter, async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password)
         return res.status(400).json({ error: 'Email and password are required.' });
 
     const candidate = db.prepare('SELECT * FROM candidates WHERE email = ?').get(email.toLowerCase());
-    if (!candidate || !bcrypt.compareSync(password, candidate.password_hash))
+    if (!candidate || !(await bcrypt.compare(password, candidate.password_hash)))
         return res.status(401).json({ error: 'Invalid email or password.' });
 
     const token = jwt.sign(
@@ -210,7 +238,7 @@ app.post('/api/login', (req, res) => {
 });
 
 // ── POST /api/admin/login ────────────────────────────────
-app.post('/api/admin/login', (req, res) => {
+app.post('/api/admin/login', authLimiter, (req, res) => {
     const { email, password } = req.body;
     if (!email || !password)
         return res.status(400).json({ error: 'Email and password are required.' });
