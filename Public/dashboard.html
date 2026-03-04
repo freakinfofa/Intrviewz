@@ -366,6 +366,11 @@
                     const quizUrl = m.url ? m.url : `quiz.html?module=${encodeURIComponent(m.id)}`;
 
                     el.className = 'module-card' + (m.ready ? '' : ' coming-soon');
+                    const isDiagram = (m.url || '').includes('diagram');
+                    const moduleType = isDiagram ? 'Interactive Diagram' : 'Multiple Choice';
+                    const questionsLabel = isDiagram ? 'Whiteboard' : `${m.questions} Questions`;
+                    const scoreDisplay = (done && bestPct >= 0) ? `<span class="pill score-badge ${scoreCls}" style="font-size:.72rem;">Best: ${bestPct}%</span>` :
+                        (done && bestPct === -1) ? `<span class="pill score-badge" style="font-size:.72rem;background:rgba(79,142,247,.12);color:#93c5fd;border:1px solid rgba(79,142,247,.3);">✓ Submitted</span>` : '';
                     el.innerHTML = `
           <div class="card-tags">
             ${!m.ready ? '<span class="coming-tag">Coming Soon</span>' : ''}
@@ -379,13 +384,13 @@
           </div>
           <div class="card-meta">
             <span class="pill ${m.ready ? 'ready' : ''}">​${m.ready ? '● Ready' : 'Coming Soon'}</span>
-            <span class="pill">${m.questions} Questions</span>
-            <span class="pill">Multiple Choice</span>
-            ${done ? `<span class="pill score-badge ${scoreCls}" style="font-size:.72rem;">Best: ${bestPct}%</span>` : ''}
+            <span class="pill">${questionsLabel}</span>
+            <span class="pill">${moduleType}</span>
+            ${scoreDisplay}
           </div>
           ${m.ready && !locked ? `
           <div style="margin-top:14px;">
-            <button class="retake-btn" data-url="${quizUrl}">${retakeOk ? '↺ Retake Module' : (localStorage.getItem('progress_' + candidateId + '_' + m.id) ? '▶ Resume' : '▶ Start Module')}</button>
+            <button class="retake-btn" data-url="${quizUrl}">${retakeOk ? '↺ Retake Module' : (isDiagram ? '🖊 Open Whiteboard' : (localStorage.getItem('progress_' + candidateId + '_' + m.id) ? '▶ Resume' : '▶ Start Module'))}</button>
           </div>` : ''}`;
 
                     // In-Progress badge
@@ -430,15 +435,30 @@
                 const res = await fetch(`${API}/results/${candidateId}`, { headers: authHeaders() });
                 const results = await res.json();
 
+                // Also fetch diagram submissions
+                let diagramSubs = [];
+                try {
+                    const dsRes = await fetch(`${API}/diagram/submissions/${candidateId}`, { headers: authHeaders() });
+                    if (dsRes.ok) diagramSubs = await dsRes.json();
+                } catch { /* ignore */ }
+
                 // Build map of moduleId → best score for module cards
                 const completedModules = new Map();
                 results.forEach(r => {
                     const prev = completedModules.get(r.module_id) ?? -1;
                     if (r.pct > prev) completedModules.set(r.module_id, r.pct);
                 });
+                // Mark diagram modules as completed (no score, use -1 as sentinel)
+                diagramSubs.forEach(ds => {
+                    if (!completedModules.has(ds.module_id)) {
+                        completedModules.set(ds.module_id, -1);
+                    }
+                });
                 loadModules(completedModules);
 
-                if (!results.length) {
+                const hasAny = results.length > 0 || diagramSubs.length > 0;
+
+                if (!hasAny) {
                     tbody.innerHTML = `<tr><td colspan="5" class="empty-state">
                         <img src="images/empty-state.png" alt="No results" class="empty-state-icon" /><br/>
                         No tests completed yet. Select a module above to get started!
@@ -447,7 +467,7 @@
                 }
                 tbody.innerHTML = '';
 
-                // ── Completed results ──
+                // ── Completed quiz results ──
                 results.forEach(r => {
                     const pct = r.pct;
                     const cls = pct >= 80 ? 'high' : pct >= 60 ? 'mid' : 'low';
@@ -459,6 +479,19 @@
           <td>${r.score} / ${r.total}</td>
           <td style="color:var(--muted);font-size:.82rem;">${date}</td>
           <td><button onclick="showDetail(${r.id})" style="background:none;border:1px solid var(--border);color:var(--accent);padding:5px 12px;border-radius:7px;cursor:pointer;font-size:.8rem;font-family:inherit;">Review</button></td>`;
+                    tbody.appendChild(tr);
+                });
+
+                // ── Diagram submissions ──
+                diagramSubs.forEach(ds => {
+                    const date = new Date(ds.submitted_at + 'Z').toLocaleString();
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+          <td><strong>${ds.module_name}</strong></td>
+          <td><span class="score-badge" style="background:rgba(79,142,247,.12);color:#93c5fd;border:1px solid rgba(79,142,247,.3);font-size:.72rem;">📐 Diagram</span></td>
+          <td style="color:var(--muted);">Submitted</td>
+          <td style="color:var(--muted);font-size:.82rem;">${date}</td>
+          <td><span style="font-size:.8rem;color:var(--muted);">✓ Submitted</span></td>`;
                     tbody.appendChild(tr);
                 });
 

@@ -788,6 +788,48 @@
             </table>
         </div>
 
+        <!-- ── Diagram Submissions Section ── -->
+        <div class="section-header" style="margin-top:36px;">
+            <div class="section-title">Diagram Submissions</div>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Candidate</th>
+                        <th>Module</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="diagramBody">
+                    <tr>
+                        <td colspan="4" class="empty-state"><span class="spinner"></span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Diagram View Modal -->
+        <div class="modal-overlay" id="diagramModalOverlay"
+            onclick="if(event.target===this)this.classList.remove('open')">
+            <div class="modal" style="max-width:900px;max-height:90vh;">
+                <div class="modal-header">
+                    <div>
+                        <h3 id="diagramModalTitle">Diagram Submission</h3>
+                        <div class="meta" id="diagramModalMeta"></div>
+                    </div>
+                    <button class="modal-close"
+                        onclick="document.getElementById('diagramModalOverlay').classList.remove('open')">✕</button>
+                </div>
+                <div class="modal-body" style="overflow:hidden;">
+                    <div id="diagramModalBody"
+                        style="min-height:400px;display:flex;align-items:center;justify-content:center;">
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- ── Question Modules Section ── -->
         <div class="section-header" style="margin-top:36px;">
             <div class="section-title">Question Modules</div>
@@ -935,6 +977,7 @@
     </div>
 
     <script src="js/app.js"></script>
+    <script src="js/excalidraw-bundle.js"></script>
     <script>
         const token = sessionStorage.getItem('adminToken');
         if (!token) window.location.href = 'admin-login.html';
@@ -1230,7 +1273,8 @@
         // ── Retake Modal ─────────────────────────────────────
         const READY_MODULES = [
             { id: 'ad-management', name: 'Active Directory Management' },
-            { id: 'onedrive-management', name: 'OneDrive Management' }
+            { id: 'onedrive-management', name: 'OneDrive Management' },
+            { id: 'diagram-design', name: 'Diagram Design' }
         ];
 
         let _retakeCandidateId = null;
@@ -1284,6 +1328,109 @@
         loadData();
         loadCandidates();
         loadModules();
+        loadDiagramSubmissions();
+
+        // ── Diagram Submissions ──────────────────────────────────
+        async function loadDiagramSubmissions() {
+            const tbody = document.getElementById('diagramBody');
+            try {
+                const res = await fetch(`${API}/admin/diagram-submissions`, { headers: authHeaders() });
+                const subs = await res.json();
+                if (!subs.length) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No diagram submissions yet.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = '';
+                subs.forEach(s => {
+                    const initials = (s.candidate_name || '?').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+                    const date = new Date(s.submitted_at + 'Z').toLocaleString();
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>
+                          <div class="candidate-cell">
+                            <div class="avatar">${initials}</div>
+                            <div class="candidate-info">
+                              <div class="name">${s.candidate_name}</div>
+                              <div class="email">${s.candidate_email || ''}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td>${s.module_name}</td>
+                        <td style="color:var(--muted);font-size:.8rem;">${date}</td>
+                        <td style="display:flex;gap:6px;align-items:center;"><button class="review-btn" onclick="viewDiagram(${s.id})">📐 View</button><button class="review-btn" onclick="deleteDiagram(${s.id})" style="color:var(--danger);">🗑 Delete</button></td>`;
+                    tbody.appendChild(tr);
+                });
+            } catch {
+                tbody.innerHTML = '<tr><td colspan="4" class="empty-state" style="color:var(--danger)">Failed to load diagram submissions.</td></tr>';
+            }
+        }
+
+        async function viewDiagram(submissionId) {
+            const overlay = document.getElementById('diagramModalOverlay');
+            const body = document.getElementById('diagramModalBody');
+            body.innerHTML = '<span class="spinner"></span>';
+            overlay.classList.add('open');
+
+            try {
+                const res = await fetch(`${API}/admin/diagram-submissions/${submissionId}`, { headers: authHeaders() });
+                const sub = await res.json();
+                const date = new Date(sub.submitted_at + 'Z').toLocaleString();
+                document.getElementById('diagramModalTitle').textContent = `${sub.candidate_name} \u2014 ${sub.module_name}`;
+                document.getElementById('diagramModalMeta').textContent = `Submitted: ${date}`;
+
+                let sceneData = null;
+                try { sceneData = JSON.parse(sub.scene_data); } catch { /* ignore */ }
+
+                // Show candidate info + diagram canvas
+                body.innerHTML = `
+                    <div style="width:100%;">
+                      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;">
+                        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 18px;flex:1;min-width:160px;">
+                          <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:4px;">Candidate</div>
+                          <div style="font-weight:600;">${sub.candidate_name}</div>
+                          <div style="font-size:.8rem;color:var(--muted);">${sub.candidate_email}</div>
+                        </div>
+                        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 18px;flex:1;min-width:120px;">
+                          <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:4px;">Submitted</div>
+                          <div style="font-weight:600;font-size:.9rem;">${date}</div>
+                        </div>
+                      </div>
+                      <div id="diagramViewContainer" style="width:100%;height:500px;border:1px solid var(--border);border-radius:10px;overflow:hidden;"></div>
+                    </div>`;
+
+                // Render the diagram in read-only mode
+                if (sceneData && window.ExcalidrawMount) {
+                    ExcalidrawMount.render('diagramViewContainer', {
+                        initialData: sceneData,
+                        viewMode: true,
+                        theme: 'dark'
+                    });
+                } else if (sub.image_data) {
+                    // Fallback: show the thumbnail image
+                    document.getElementById('diagramViewContainer').innerHTML =
+                        `<img src="${sub.image_data}" style="max-width:100%;max-height:100%;object-fit:contain;" alt="Diagram" />`;
+                } else {
+                    document.getElementById('diagramViewContainer').innerHTML =
+                        '<p style="padding:20px;color:var(--muted);text-align:center;">No diagram data available.</p>';
+                }
+            } catch {
+                body.innerHTML = '<p style="color:var(--danger);font-size:.9rem;">Failed to load submission details.</p>';
+            }
+        }
+
+        async function deleteDiagram(submissionId) {
+            if (!confirm('Are you sure you want to delete this diagram submission? This cannot be undone.')) return;
+            try {
+                const res = await fetch(`${API}/admin/diagram-submissions/${submissionId}`, {
+                    method: 'DELETE',
+                    headers: authHeaders()
+                });
+                if (!res.ok) throw new Error();
+                loadDiagramSubmissions();
+            } catch {
+                alert('Failed to delete submission.');
+            }
+        }
 
         // ── Module Manager ──────────────────────────────────────
         let _editingModuleId = null;

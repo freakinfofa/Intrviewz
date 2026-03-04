@@ -36,7 +36,7 @@ if (SG_KEY && SG_KEY !== 'SG.your-api-key-here') {
 }
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ── Serve module directories (legacy standalone quiz pages) ──
@@ -66,6 +66,7 @@ const SEED_DATA = {
         { id: 'networking', name: 'Networking Fundamentals', icon: '🌐', description: 'TCP/IP, subnetting, routing protocols, VLANs, and network troubleshooting.', url: null, sort_order: 2, is_active: 0 },
         { id: 'security', name: 'Security & Compliance', icon: '🔒', description: 'Cybersecurity principles, threat vectors, access control, and compliance frameworks.', url: null, sort_order: 3, is_active: 0 },
         { id: 'powershell', name: 'PowerShell & Scripting', icon: '⚡', description: 'PowerShell cmdlets, scripting best practices, and AD automation.', url: null, sort_order: 4, is_active: 0 },
+        { id: 'diagram-design', name: 'Diagram Design', icon: '📐', description: 'Draw a network layout, application architecture, or infrastructure diagram using the interactive whiteboard.', url: 'diagram.html?module=diagram-design', sort_order: 5, is_active: 1 },
     ],
     questions: {
         'ad-management': [
@@ -115,10 +116,8 @@ const SEED_DATA = {
     }
 };
 
-(function seedIfEmpty() {
-    const count = db.prepare('SELECT COUNT(*) as c FROM modules').get().c;
-    if (count > 0) return;
-    console.log('🌱  Seeding question banks into database...');
+(function seedModules() {
+    // Always ensure all seed modules exist (INSERT OR IGNORE preserves existing data)
     const insertModule = db.prepare(
         `INSERT OR IGNORE INTO modules (id, name, icon, description, url, is_active, sort_order)
          VALUES (@id, @name, @icon, @description, @url, @is_active, @sort_order)`
@@ -128,10 +127,15 @@ const SEED_DATA = {
          VALUES (@module_id, @question, @opt0, @opt1, @opt2, @opt3, @correct_idx, @sort_order)`
     );
     const seedTx = db.transaction(() => {
+        let added = 0;
         for (const m of SEED_DATA.modules) {
-            insertModule.run({ is_active: 1, ...m });
+            const result = insertModule.run({ is_active: 1, ...m });
+            if (result.changes > 0) added++;
         }
+        // Only seed questions for modules that had zero questions
         for (const [moduleId, qs] of Object.entries(SEED_DATA.questions)) {
+            const qCount = db.prepare('SELECT COUNT(*) as c FROM questions WHERE module_id = ?').get(moduleId).c;
+            if (qCount > 0) continue; // already has questions
             qs.forEach((q, i) => {
                 insertQuestion.run({
                     module_id: moduleId,
@@ -143,9 +147,9 @@ const SEED_DATA = {
                 });
             });
         }
+        if (added > 0) console.log(`🌱  Seeded ${added} new module(s) into database.`);
     });
     seedTx();
-    console.log('✅  Seed complete.');
 })();
 
 // ── GET /api/questions/:moduleId ─────────────────────────
@@ -728,6 +732,159 @@ app.get('/api/admin/candidates', adminAuth, (req, res) => {
 app.get('/api/me', auth, (req, res) => {
     const candidate = db.prepare('SELECT id, name, email, created_at FROM candidates WHERE id = ?').get(req.candidate.id);
     res.json(candidate);
+});
+
+// ── GET /api/diagram/prompt/:moduleId ────────────────────
+// Returns module description as the diagram prompt
+app.get('/api/diagram/prompt/:moduleId', auth, (req, res) => {
+    const mod = db.prepare('SELECT id, name, description FROM modules WHERE id = ?').get(req.params.moduleId);
+    if (!mod) return res.status(404).json({ error: 'Module not found.' });
+    res.json({ id: mod.id, name: mod.name, prompt: mod.description });
+});
+
+// ── POST /api/diagram/submit ─────────────────────────────
+// Supports both new submissions and updates to existing ones
+app.post('/api/diagram/submit', auth, (req, res) => {
+    const { moduleId, moduleName, sceneData, imageData, submissionId } = req.body;
+    if (!moduleId || !moduleName || !sceneData)
+        return res.status(400).json({ error: 'moduleId, moduleName, and sceneData are required.' });
+
+    // Validate JSON
+    try { JSON.parse(sceneData); } catch {
+        return res.status(400).json({ error: 'sceneData must be valid JSON.' });
+    }
+
+    let resultId;
+
+    if (submissionId) {
+        // Update existing submission (verify ownership)
+        const existing = db.prepare(
+            'SELECT id FROM diagram_submissions WHERE id = ? AND candidate_id = ?'
+        ).get(submissionId, req.candidate.id);
+        if (!existing) return res.status(404).json({ error: 'Submission not found.' });
+
+        db.prepare(
+            `UPDATE diagram_submissions SET scene_data = ?, image_data = ?, submitted_at = datetime('now')
+             WHERE id = ?`
+        ).run(sceneData, imageData || null, submissionId);
+        resultId = submissionId;
+    } else {
+        // New submission
+        const result = db.prepare(
+            `INSERT INTO diagram_submissions (candidate_id, module_id, module_name, scene_data, image_data)
+             VALUES (?, ?, ?, ?, ?)`
+        ).run(req.candidate.id, moduleId, moduleName, sceneData, imageData || null);
+        resultId = result.lastInsertRowid;
+    }
+
+    // Consume retake grant if one existed
+    db.prepare(
+        'DELETE FROM retake_grants WHERE candidate_id = ? AND module_id = ?'
+    ).run(req.candidate.id, moduleId);
+
+    // Send email notification (non-blocking)
+    sendDiagramEmail({
+        candidateName: req.candidate.name,
+        candidateEmail: req.candidate.email,
+        moduleName,
+        submissionId: resultId
+    });
+
+    res.json({ submissionId: resultId });
+});
+
+// ── GET /api/diagram/submission-data/:id ──────────────────
+// Candidate can fetch their own submission scene data for re-editing
+app.get('/api/diagram/submission-data/:id', auth, (req, res) => {
+    const sub = db.prepare(
+        'SELECT id, scene_data FROM diagram_submissions WHERE id = ? AND candidate_id = ?'
+    ).get(req.params.id, req.candidate.id);
+    if (!sub) return res.status(404).json({ error: 'Submission not found.' });
+    res.json(sub);
+});
+
+// ── sendDiagramEmail ──────────────────────────────────────
+async function sendDiagramEmail({ candidateName, candidateEmail, moduleName, submissionId }) {
+    if (!SG_KEY || SG_KEY === 'SG.your-api-key-here' || !NOTIFY_EMAIL || !SG_FROM) return;
+
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <body style="margin:0;padding:0;background:#0f1117;font-family:'Segoe UI',Arial,sans-serif;color:#e8eaf6;">
+      <div style="max-width:680px;margin:32px auto;background:#1a1d27;border:1px solid #2e3350;border-radius:14px;overflow:hidden;">
+        <div style="background:linear-gradient(135deg,#4f8ef7,#7c5cfc);padding:28px 32px;">
+          <div style="font-size:22px;font-weight:700;color:#fff;">📐 Diagram Submission</div>
+          <div style="font-size:14px;color:rgba(255,255,255,.75);margin-top:4px;">${moduleName}</div>
+        </div>
+        <div style="padding:28px 32px;">
+          <div style="font-size:13px;color:#8b90b0;margin-bottom:4px;">Candidate</div>
+          <div style="font-size:16px;font-weight:600;">${candidateName}</div>
+          <div style="font-size:13px;color:#8b90b0;">${candidateEmail}</div>
+          <div style="margin-top:20px;padding:14px;background:#22263a;border:1px solid #2e3350;border-radius:10px;font-size:14px;color:#8b90b0;">
+            A diagram has been submitted. Log in to the admin panel to view the full drawing.
+          </div>
+        </div>
+        <div style="padding:20px 32px;font-size:12px;color:#4a5080;text-align:center;">
+          Sent automatically by Assessment Portal · ${new Date().toLocaleString()}
+        </div>
+      </div>
+    </body>
+    </html>`;
+
+    try {
+        await sgMail.send({
+            to: NOTIFY_EMAIL,
+            from: SG_FROM,
+            subject: `[Assessment] ${candidateName} – ${moduleName} – Diagram Submitted`,
+            html
+        });
+        console.log(`✉️  Diagram email sent for ${candidateName} (${moduleName})`);
+    } catch (err) {
+        console.error('SendGrid error:', err.response?.body?.errors || err.message);
+    }
+}
+
+// ── GET /api/admin/diagram-submissions ───────────────────
+app.get('/api/admin/diagram-submissions', adminAuth, (req, res) => {
+    const subs = db.prepare(`
+        SELECT ds.id, ds.module_id, ds.module_name, ds.submitted_at,
+               c.name as candidate_name, c.email as candidate_email
+        FROM diagram_submissions ds
+        JOIN candidates c ON c.id = ds.candidate_id
+        ORDER BY ds.submitted_at DESC
+    `).all();
+    res.json(subs);
+});
+
+// ── GET /api/admin/diagram-submissions/:id ───────────────
+app.get('/api/admin/diagram-submissions/:id', adminAuth, (req, res) => {
+    const sub = db.prepare(`
+        SELECT ds.*, c.name as candidate_name, c.email as candidate_email
+        FROM diagram_submissions ds
+        JOIN candidates c ON c.id = ds.candidate_id
+        WHERE ds.id = ?
+    `).get(req.params.id);
+    if (!sub) return res.status(404).json({ error: 'Submission not found.' });
+    res.json(sub);
+});
+
+// ── DELETE /api/admin/diagram-submissions/:id ────────────
+app.delete('/api/admin/diagram-submissions/:id', adminAuth, (req, res) => {
+    const result = db.prepare('DELETE FROM diagram_submissions WHERE id = ?').run(req.params.id);
+    if (result.changes === 0) return res.status(404).json({ error: 'Submission not found.' });
+    res.json({ success: true });
+});
+
+// ── GET /api/diagram/submissions/:candidateId ────────────
+// Candidate can check if they already submitted a diagram for a module
+app.get('/api/diagram/submissions/:candidateId', auth, (req, res) => {
+    const id = parseInt(req.params.candidateId);
+    if (req.candidate.id !== id)
+        return res.status(403).json({ error: 'Access denied.' });
+    const subs = db.prepare(
+        'SELECT id, module_id, module_name, submitted_at FROM diagram_submissions WHERE candidate_id = ? ORDER BY submitted_at DESC'
+    ).all(id);
+    res.json(subs);
 });
 
 // ── Start ────────────────────────────────────────────────

@@ -73,6 +73,16 @@ db.exec(`
     sort_order  INTEGER NOT NULL DEFAULT 0,
     created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS diagram_submissions (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    candidate_id  INTEGER NOT NULL REFERENCES candidates(id),
+    module_id     TEXT    NOT NULL REFERENCES modules(id),
+    module_name   TEXT    NOT NULL,
+    scene_data    TEXT    NOT NULL,
+    image_data    TEXT,
+    submitted_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+  );
 `);
 
 module.exports = db;

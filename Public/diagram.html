@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Diagram Design – Assessment Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="css/styles.css" />
+    <style>
+        body.body-diagram {
+            padding-bottom: 0;
+            overflow: hidden;
+        }
+
+        .diagram-layout {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 65px);
+        }
+
+        /* ── Prompt Bar ── */
+        .prompt-bar {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 14px 24px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .prompt-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(79, 142, 247, .15), rgba(124, 92, 252, .15));
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .prompt-text {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .prompt-label {
+            font-size: .72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: var(--muted);
+            margin-bottom: 3px;
+        }
+
+        .prompt-scenario {
+            font-size: .92rem;
+            font-weight: 500;
+            line-height: 1.4;
+            color: var(--text);
+        }
+
+        .prompt-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .timer {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: .82rem;
+            color: var(--muted);
+            font-variant-numeric: tabular-nums;
+            padding: 6px 12px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .timer-icon {
+            font-size: .9rem;
+        }
+
+        /* ── Canvas Area ── */
+        .canvas-wrap {
+            flex: 1;
+            position: relative;
+            background: #191b22;
+            overflow: hidden;
+        }
+
+        #excalidrawContainer {
+            width: 100%;
+            height: 100%;
+        }
+
+        .canvas-loading {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            color: var(--muted);
+            font-size: .9rem;
+            background: var(--bg);
+            z-index: 5;
+            transition: opacity .4s;
+        }
+
+        .canvas-loading.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .canvas-loading .spinner {
+            width: 32px;
+            height: 32px;
+        }
+
+        /* ── Control Bar ── */
+        .control-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 24px;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .control-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .saved-indicator {
+            font-size: .78rem;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            opacity: 0;
+            transition: opacity .3s;
+        }
+
+        .saved-indicator.show {
+            opacity: 1;
+        }
+
+        .btn-control {
+            padding: 10px 22px;
+            border-radius: 9px;
+            font-size: .88rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            border: none;
+            transition: all .2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .btn-draft {
+            background: var(--surface2);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-draft:hover {
+            background: var(--border);
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            color: #fff;
+            box-shadow: 0 4px 18px rgba(79, 142, 247, .35);
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 24px rgba(79, 142, 247, .5);
+        }
+
+        .btn-submit:disabled,
+        .btn-draft:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-back {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: .82rem;
+            cursor: pointer;
+            transition: all .2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-back:hover {
+            color: var(--text);
+            border-color: var(--muted);
+        }
+
+        /* ── Status badge ── */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: .74rem;
+            font-weight: 600;
+        }
+
+        .status-badge.submitted {
+            background: rgba(34, 197, 94, .12);
+            color: #86efac;
+            border: 1px solid rgba(34, 197, 94, .3);
+        }
+
+        .status-badge.editing {
+            background: rgba(245, 158, 11, .12);
+            color: #fcd34d;
+            border: 1px solid rgba(245, 158, 11, .3);
+        }
+
+        /* ── Overlays ── */
+        .submit-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 17, 23, .88);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            z-index: 50;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .3s;
+        }
+
+        .submit-overlay.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .submit-overlay .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+        }
+
+        .submit-overlay p {
+            font-size: .95rem;
+            color: var(--muted);
+        }
+
+        @media (max-width: 700px) {
+            .prompt-bar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+                padding: 12px 16px;
+            }
+
+            .prompt-right {
+                width: 100%;
+                justify-content: flex-end;
+            }
+
+            .control-bar {
+                padding: 10px 16px;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .control-left,
+            .control-right {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+
+<body class="body-dashboard body-diagram">
+
+    <nav>
+        <div class="nav-brand">
+            <img src="images/logo.png" alt="Logo" class="nav-brand-img" />
+            Assessment Portal
+        </div>
+        <div class="nav-right">
+            <div class="nav-user">Welcome, <span id="navName">—</span></div>
+            <button class="btn-sm" onclick="logout()">Log Out</button>
+        </div>
+    </nav>
+
+    <div class="diagram-layout" id="diagramLayout">
+
+        <!-- Prompt Bar -->
+        <div class="prompt-bar">
+            <div class="prompt-icon">📐</div>
+            <div class="prompt-text">
+                <div class="prompt-label">Scenario / Prompt</div>
+                <div class="prompt-scenario" id="promptText">Loading…</div>
+            </div>
+            <div class="prompt-right">
+                <span class="status-badge editing" id="statusBadge" style="display:none;"></span>
+                <div class="timer">
+                    <span class="timer-icon">⏱</span>
+                    <span id="timerDisplay">00:00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Canvas -->
+        <div class="canvas-wrap" id="canvasWrap">
+            <div class="canvas-loading" id="canvasLoading">
+                <div class="spinner"></div>
+                <p>Loading diagram editor…</p>
+            </div>
+            <div id="excalidrawContainer"></div>
+        </div>
+
+        <!-- Control Bar -->
+        <div class="control-bar" id="controlBar">
+            <div class="control-left">
+                <a href="dashboard.html" class="btn-back">← Dashboard</a>
+                <span class="saved-indicator" id="savedIndicator">✓ Draft saved</span>
+            </div>
+            <div class="control-right">
+                <button class="btn-control btn-draft" id="saveDraftBtn" onclick="saveDraft()">
+                    💾 Save Draft
+                </button>
+                <button class="btn-control btn-submit" id="submitBtn" onclick="submitDiagram()">
+                    ✓ Submit Diagram
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Submit overlay -->
+    <div class="submit-overlay" id="submitOverlay">
+        <div class="spinner"></div>
+        <p id="submitMsg">Submitting your diagram…</p>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script src="js/excalidraw-bundle.js"></script>
+    <script>
+        // ── Auth check ──
+        const token = sessionStorage.getItem('token');
+        const candidateId = sessionStorage.getItem('candidateId');
+        const candidateName = sessionStorage.getItem('candidateName');
+        if (!token) window.location.href = 'index.html';
+        document.getElementById('navName').textContent = candidateName || '—';
+
+        // ── Parse module from URL ──
+        const params = new URLSearchParams(window.location.search);
+        const moduleId = params.get('module') || 'diagram-design';
+
+        let moduleName = 'Diagram Design';
+        let startTime = Date.now();
+        let timerInterval = null;
+        let draftSaveTimer = null;
+        let existingSubmissionId = null;
+
+        const DRAFT_KEY = `diagram_draft_${candidateId}_${moduleId}`;
+
+        // ── Timer ──
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+                const secs = String(elapsed % 60).padStart(2, '0');
+                document.getElementById('timerDisplay').textContent = `${mins}:${secs}`;
+            }, 1000);
+        }
+
+        // ── Load prompt from server ──
+        async function loadPrompt() {
+            try {
+                const res = await fetch(`${API}/diagram/prompt/${moduleId}`, { headers: authHeaders() });
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                moduleName = data.name;
+                document.getElementById('promptText').textContent = data.prompt ||
+                    'Draw your diagram using the whiteboard below.';
+            } catch {
+                document.getElementById('promptText').textContent =
+                    'Draw a network layout, application architecture, or infrastructure diagram.';
+            }
+        }
+
+        // ── Check for existing submission (for editing) ──
+        async function checkExistingSubmission() {
+            try {
+                const res = await fetch(`${API}/diagram/submissions/${candidateId}`, { headers: authHeaders() });
+                if (!res.ok) return null;
+                const subs = await res.json();
+                return subs.find(s => s.module_id === moduleId) || null;
+            } catch {
+                return null;
+            }
+        }
+
+        // ── Load existing scene data for editing ──
+        async function loadExistingScene(submissionId) {
+            try {
+                const res = await fetch(`${API}/diagram/submission-data/${submissionId}`, { headers: authHeaders() });
+                if (!res.ok) return null;
+                const data = await res.json();
+                if (data.scene_data) {
+                    return JSON.parse(data.scene_data);
+                }
+            } catch { /* ignore */ }
+            return null;
+        }
+
+        // ── Save Draft (to localStorage) ──
+        function saveDraft() {
+            if (!window.ExcalidrawMount) return;
+            const sceneData = ExcalidrawMount.getSceneData();
+            if (!sceneData) return;
+
+            const draft = {
+                moduleId,
+                moduleName,
+                timestamp: Date.now(),
+                elapsed: Date.now() - startTime,
+                sceneData
+            };
+            try {
+                localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+            } catch { /* ignore */ }
+            showSaved();
+        }
+
+        function showSaved() {
+            const indicator = document.getElementById('savedIndicator');
+            indicator.classList.add('show');
+            clearTimeout(draftSaveTimer);
+            draftSaveTimer = setTimeout(() => { indicator.classList.remove('show'); }, 2000);
+        }
+
+        // Auto-save draft every 30 seconds
+        setInterval(() => { if (window.ExcalidrawMount && ExcalidrawMount.hasContent()) saveDraft(); }, 30000);
+
+        // ── Submit Diagram ──
+        async function submitDiagram() {
+            if (!window.ExcalidrawMount) return alert('Editor is still loading. Please wait.');
+
+            if (!ExcalidrawMount.hasContent()) {
+                return alert('Please draw something on the canvas before submitting.');
+            }
+
+            const verb = existingSubmissionId ? 'update' : 'submit';
+            if (!confirm(`Are you sure you want to ${verb} your diagram?`)) return;
+
+            const submitBtn = document.getElementById('submitBtn');
+            const draftBtn = document.getElementById('saveDraftBtn');
+            submitBtn.disabled = true;
+            draftBtn.disabled = true;
+
+            document.getElementById('submitOverlay').classList.add('show');
+
+            try {
+                // Get the full scene data from the Excalidraw API
+                const sceneData = ExcalidrawMount.getSceneData();
+                if (!sceneData) throw new Error('Could not capture diagram data.');
+
+                // Also generate a thumbnail image
+                let imageData = null;
+                try { imageData = await ExcalidrawMount.getImageData(); } catch { /* optional */ }
+
+                const payload = {
+                    moduleId,
+                    moduleName,
+                    sceneData: JSON.stringify(sceneData),
+                    imageData
+                };
+
+                // If editing, include the existing submission ID
+                if (existingSubmissionId) {
+                    payload.submissionId = existingSubmissionId;
+                }
+
+                const res = await fetch(`${API}/diagram/submit`, {
+                    method: 'POST',
+                    headers: authHeaders(),
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Server error');
+                }
+
+                const result = await res.json();
+                existingSubmissionId = result.submissionId;
+
+                // Clean up draft
+                localStorage.removeItem(DRAFT_KEY);
+
+                document.getElementById('submitMsg').textContent = 'Diagram submitted! Redirecting…';
+                setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
+            } catch (err) {
+                document.getElementById('submitOverlay').classList.remove('show');
+                submitBtn.disabled = false;
+                draftBtn.disabled = false;
+                alert('Failed to submit diagram: ' + err.message);
+            }
+        }
+
+        // ── Init ──
+        async function init() {
+            await loadPrompt();
+
+            // Check for existing submission to allow editing
+            const existing = await checkExistingSubmission();
+            let initialData = null;
+
+            if (existing) {
+                existingSubmissionId = existing.id;
+                const badge = document.getElementById('statusBadge');
+                badge.textContent = '✏️ Editing previous submission';
+                badge.style.display = 'inline-flex';
+                badge.className = 'status-badge editing';
+
+                // Change submit button text
+                document.getElementById('submitBtn').innerHTML = '✓ Update Diagram';
+
+                // Load the existing scene data
+                initialData = await loadExistingScene(existing.id);
+            } else {
+                // Check for draft in localStorage
+                try {
+                    const saved = JSON.parse(localStorage.getItem(DRAFT_KEY));
+                    if (saved && saved.sceneData) {
+                        initialData = saved.sceneData;
+                        const badge = document.getElementById('statusBadge');
+                        badge.textContent = '📋 Draft restored';
+                        badge.style.display = 'inline-flex';
+                        badge.className = 'status-badge editing';
+                    }
+                } catch { /* ignore */ }
+            }
+
+            // Render Excalidraw
+            ExcalidrawMount.render('excalidrawContainer', {
+                initialData: initialData,
+                viewMode: false,
+                theme: 'dark'
+            });
+
+            document.getElementById('canvasLoading').classList.add('hidden');
+            startTimer();
+        }
+
+        init();
+    </script>
+</body>
+
+</html>
