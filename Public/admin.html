@@ -270,7 +270,19 @@
             border-color: var(--accent);
         }
 
+        /* ── Clickable candidate name ── */
+        .candidate-name-link {
+            cursor: pointer;
+            color: var(--text);
+            transition: color .18s;
+        }
+        .candidate-name-link:hover {
+            color: var(--accent);
+            text-decoration: underline;
+        }
+
         /* ── Mini bar ── */
+
         .mini-bar-wrap {
             display: flex;
             align-items: center;
@@ -743,7 +755,89 @@
             </div>
         </div>
 
+        <!-- Candidate Profile Modal -->
+        <div class="modal-overlay" id="candidateProfileOverlay" onclick="closeCandidateProfileModal(event)">
+            <div class="modal" style="max-width:900px;max-height:90vh;overflow-y:auto;">
+                <div class="modal-header">
+                    <div>
+                        <h3 id="candidateProfileTitle">Candidate Profile</h3>
+                        <div class="meta" id="candidateProfileMeta"></div>
+                    </div>
+                    <button class="modal-close" onclick="closeCandidateProfileModalDirect()">✕</button>
+                </div>
+                <div class="modal-body">
+                    <!-- Candidate Stats -->
+                    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px;">
+                        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;flex:1;min-width:140px;">
+                            <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:4px;">Email</div>
+                            <div style="font-weight:600;font-size:.9rem;" id="cpEmail"></div>
+                        </div>
+                        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;flex:1;min-width:140px;">
+                            <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:4px;">Registered</div>
+                            <div style="font-weight:600;font-size:.9rem;" id="cpRegistered"></div>
+                        </div>
+                        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;flex:1;min-width:140px;">
+                            <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:4px;">Tests Taken</div>
+                            <div style="font-weight:600;font-size:.9rem;" id="cpTests"></div>
+                        </div>
+                        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;flex:1;min-width:140px;">
+                            <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:4px;">Avg Score</div>
+                            <div style="font-weight:600;font-size:.9rem;" id="cpAvgScore"></div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div style="margin-bottom:24px;">
+                        <button class="btn-export" id="btnIndividualPdf" onclick="generateIndividualPDF()">
+                            📥 Generate PDF Report
+                        </button>
+                    </div>
+
+                    <!-- Quiz Sessions -->
+                    <div class="section-header" style="margin-top:0;margin-bottom:12px;">
+                        <div class="section-title" style="font-size:1rem;">Quiz Sessions</div>
+                    </div>
+                    <div class="table-wrap" style="margin-bottom:24px;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Module</th>
+                                    <th>Score</th>
+                                    <th>Correct / Total</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cpQuizBody">
+                                <tr><td colspan="5" class="empty-state">No quiz sessions</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Diagram Submissions -->
+                    <div class="section-header" style="margin-top:0;margin-bottom:12px;">
+                        <div class="section-title" style="font-size:1rem;">Diagram Submissions</div>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Module</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cpDiagramBody">
+                                <tr><td colspan="3" class="empty-state">No diagram submissions</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Test Sessions -->
+
         <div class="section-header">
             <div class="section-title">All Test Sessions</div>
             <div class="toolbar">
@@ -907,6 +1001,13 @@
                 <div id="addQForm"
                     style="display:none;margin-top:14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:18px;">
                     <div class="form-row">
+                        <label class="form-label">Question Type</label>
+                        <select class="form-input" id="aqType" onchange="toggleAddQuestionType()" style="cursor:pointer;">
+                            <option value="multiple_choice">📝 Multiple Choice</option>
+                            <option value="open_ended">✏️ Open-ended (Text Answer)</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
                         <label class="form-label">Question Text</label>
                         <input class="form-input" id="aqQuestion" placeholder="Enter question…" />
                     </div>
@@ -943,6 +1044,11 @@
                                 <input class="form-input" id="aqOpt3" placeholder="Option D" style="flex:1;" />
                             </div>
                         </div>
+                    </div>
+                    <div class="form-row" id="aqModelAnswerRow" style="display:none;">
+                        <label class="form-label">Model Answer <span style="color:var(--muted);font-weight:400;">(for admin reference)</span></label>
+                        <textarea class="form-input" id="aqModelAnswer" rows="4" style="resize:vertical;line-height:1.5;"
+                            placeholder="Enter a model answer that candidates should provide..."></textarea>
                     </div>
                     <div id="aqError" style="color:var(--danger);font-size:.83rem;margin-bottom:10px;display:none;">
                     </div>
@@ -1287,7 +1393,7 @@
                           <div class="candidate-cell">
                             <div class="avatar">${initials}</div>
                             <div class="candidate-info">
-                              <div class="name">${c.name}</div>
+                              <div class="name candidate-name-link" onclick="openCandidateProfile(${c.id})">${c.name}</div>
                               <div class="email">${c.email}</div>
                             </div>
                           </div>
@@ -1304,6 +1410,7 @@
                         </td>`;
                     tbody.appendChild(tr);
                 });
+
             } catch {
                 tbody.innerHTML = '<tr><td colspan="6" class="empty-state" style="color:var(--danger)">Failed to load candidates.</td></tr>';
             }
@@ -1657,41 +1764,89 @@
             document.getElementById('qEditorMeta').textContent = `${qs.length} question${qs.length !== 1 ? 's' : ''}`;
             list.innerHTML = '';
             qs.forEach((q, i) => {
-                const opts = [q.opt0, q.opt1, q.opt2, q.opt3];
-                const correctText = opts[q.correct_idx];
+                const isOpenEnded = q.question_type === 'open_ended';
                 const item = document.createElement('div');
                 item.className = 'q-item';
                 item.id = `qi-${q.id}`;
-                item.innerHTML = `
-                    <div class="q-item-header">
-                        <span class="q-num">Q${i + 1}</span>
-                        <div class="q-text">${escHtml(q.question)}</div>
-                        <div class="q-actions">
-                            <button class="q-act-btn" onclick="toggleEditForm(${q.id})">✏️</button>
-                            <button class="q-act-btn del" onclick="deleteQuestion(${q.id})">🗑</button>
+                const isFirst = i === 0;
+                const isLast = i === qs.length - 1;
+                const reorderBtns = `
+                    <button class="q-act-btn" onclick="reorderQuestion(${q.id}, 'up')" ${isFirst ? 'disabled style="opacity:.3;cursor:not-allowed;"' : ''} title="Move up">↑</button>
+                    <button class="q-act-btn" onclick="reorderQuestion(${q.id}, 'down')" ${isLast ? 'disabled style="opacity:.3;cursor:not-allowed;"' : ''} title="Move down">↓</button>
+                `;
+                
+                if (isOpenEnded) {
+                    item.innerHTML = `
+                        <div class="q-item-header">
+                            <span class="q-num">Q${i + 1}</span>
+                            <div class="q-text">${escHtml(q.question)}</div>
+                            <div class="q-actions">
+                                ${reorderBtns}
+                                <button class="q-act-btn" onclick="toggleEditForm(${q.id})">✏️</button>
+                                <button class="q-act-btn del" onclick="deleteQuestion(${q.id})">🗑</button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="q-correct-pill">✓ ${escHtml(correctText)}</div>
-                    <div class="q-edit-form" id="qf-${q.id}">
-                        <div class="form-row">
-                            <label class="form-label">Question Text</label>
-                            <input class="form-input" id="qfq-${q.id}" value="${escAttrFull(q.question)}" />
-                        </div>
-                        <div class="opts-grid">
-                            ${opts.map((opt, idx) => `
+                        <div class="q-correct-pill" style="background:rgba(124,92,252,.1);border-color:rgba(124,92,252,.25);color:#a78bfa;">✏️ Open-ended</div>
+                        <div class="q-edit-form" id="qf-${q.id}">
                             <div class="form-row">
-                                <label class="form-label">Option ${String.fromCharCode(65 + idx)}</label>
-                                <div class="opt-row">
-                                    <input type="radio" name="qfc-${q.id}" class="opt-radio" value="${idx}" id="qfr-${q.id}-${idx}" ${q.correct_idx === idx ? 'checked' : ''}>
-                                    <label class="opt-label" for="qfr-${q.id}-${idx}">Correct</label>
-                                    <input class="form-input" id="qfo-${q.id}-${idx}" value="${escAttrFull(opt)}" style="flex:1;" />
-                                </div>
-                            </div>`).join('')}
+                                <label class="form-label">Question Text</label>
+                                <input class="form-input" id="qfq-${q.id}" value="${escAttrFull(q.question)}" />
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label">Model Answer</label>
+                                <textarea class="form-input" id="qfm-${q.id}" rows="4" style="resize:vertical;line-height:1.5;" placeholder="Model answer for admin reference...">${escAttrFull(q.model_answer || '')}</textarea>
+                            </div>
+                            <button class="btn-save-q" onclick="saveQuestion(${q.id}, true)">💾 Save Changes</button>
+                        </div>`;
+                } else {
+                    const opts = [q.opt0, q.opt1, q.opt2, q.opt3];
+                    const correctText = opts[q.correct_idx];
+                    item.innerHTML = `
+                        <div class="q-item-header">
+                            <span class="q-num">Q${i + 1}</span>
+                            <div class="q-text">${escHtml(q.question)}</div>
+                            <div class="q-actions">
+                                ${reorderBtns}
+                                <button class="q-act-btn" onclick="toggleEditForm(${q.id})">✏️</button>
+                                <button class="q-act-btn del" onclick="deleteQuestion(${q.id})">🗑</button>
+                            </div>
                         </div>
-                        <button class="btn-save-q" onclick="saveQuestion(${q.id})">💾 Save Changes</button>
-                    </div>`;
+                        <div class="q-correct-pill">✓ ${escHtml(correctText)}</div>
+                        <div class="q-edit-form" id="qf-${q.id}">
+                            <div class="form-row">
+                                <label class="form-label">Question Text</label>
+                                <input class="form-input" id="qfq-${q.id}" value="${escAttrFull(q.question)}" />
+                            </div>
+                            <div class="opts-grid">
+                                ${opts.map((opt, idx) => `
+                                <div class="form-row">
+                                    <label class="form-label">Option ${String.fromCharCode(65 + idx)}</label>
+                                    <div class="opt-row">
+                                        <input type="radio" name="qfc-${q.id}" class="opt-radio" value="${idx}" id="qfr-${q.id}-${idx}" ${q.correct_idx === idx ? 'checked' : ''}>
+                                        <label class="opt-label" for="qfr-${q.id}-${idx}">Correct</label>
+                                        <input class="form-input" id="qfo-${q.id}-${idx}" value="${escAttrFull(opt)}" style="flex:1;" />
+                                    </div>
+                                </div>`).join('')}
+                            </div>
+                            <button class="btn-save-q" onclick="saveQuestion(${q.id}, false)">💾 Save Changes</button>
+                        </div>`;
+                }
                 list.appendChild(item);
             });
+        }
+
+        async function reorderQuestion(qid, direction) {
+            const res = await fetch(`${API}/admin/questions/${qid}/reorder`, {
+                method: 'PATCH',
+                headers: authHeaders(),
+                body: JSON.stringify({ direction })
+            });
+            if (res.ok) {
+                await refreshQList();
+            } else {
+                const err = await res.json();
+                alert(err.error || 'Failed to reorder question.');
+            }
         }
 
         function escHtml(s) {
@@ -1707,15 +1862,35 @@
             form.classList.toggle('open');
         }
 
-        async function saveQuestion(qid) {
+        async function saveQuestion(qid, isOpenEnded) {
             const question = document.getElementById(`qfq-${qid}`).value.trim();
-            const opts = [0, 1, 2, 3].map(i => document.getElementById(`qfo-${qid}-${i}`).value.trim());
-            const correct_idx = Number(document.querySelector(`input[name="qfc-${qid}"]:checked`)?.value ?? 0);
-            if (!question || opts.some(o => !o)) { alert('All fields are required.'); return; }
+            if (!question) { alert('Question text is required.'); return; }
+            
+            let payload;
+            if (isOpenEnded) {
+                const modelAnswer = document.getElementById(`qfm-${qid}`).value.trim();
+                payload = { 
+                    question, 
+                    opt0: null, opt1: null, opt2: null, opt3: null, 
+                    correct_idx: null,
+                    question_type: 'open_ended',
+                    model_answer: modelAnswer || null
+                };
+            } else {
+                const opts = [0, 1, 2, 3].map(i => document.getElementById(`qfo-${qid}-${i}`).value.trim());
+                const correct_idx = Number(document.querySelector(`input[name="qfc-${qid}"]:checked`)?.value ?? 0);
+                if (opts.some(o => !o)) { alert('All option fields are required.'); return; }
+                payload = { 
+                    question, 
+                    opt0: opts[0], opt1: opts[1], opt2: opts[2], opt3: opts[3], 
+                    correct_idx 
+                };
+            }
+            
             const res = await fetch(`${API}/admin/questions/${qid}`, {
                 method: 'PUT',
                 headers: authHeaders(),
-                body: JSON.stringify({ question, opt0: opts[0], opt1: opts[1], opt2: opts[2], opt3: opts[3], correct_idx })
+                body: JSON.stringify(payload)
             });
             if (res.ok) {
                 await refreshQList();
@@ -1738,8 +1913,27 @@
             }
         }
 
+        function toggleAddQuestionType() {
+            const type = document.getElementById('aqType').value;
+            const optsGrid = document.getElementById('aqOptsGrid');
+            const modelAnswerRow = document.getElementById('aqModelAnswerRow');
+            
+            if (type === 'open_ended') {
+                optsGrid.style.display = 'none';
+                modelAnswerRow.style.display = 'block';
+            } else {
+                optsGrid.style.display = 'grid';
+                modelAnswerRow.style.display = 'none';
+            }
+        }
+
         function showAddQuestionForm() {
-            ['aqQuestion', 'aqOpt0', 'aqOpt1', 'aqOpt2', 'aqOpt3'].forEach(id => document.getElementById(id).value = '');
+            ['aqQuestion', 'aqOpt0', 'aqOpt1', 'aqOpt2', 'aqOpt3', 'aqModelAnswer'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            document.getElementById('aqType').value = 'multiple_choice';
+            toggleAddQuestionType();
             document.querySelectorAll('input[name="aqCorrect"]').forEach(r => r.checked = false);
             document.getElementById('aqError').style.display = 'none';
             const form = document.getElementById('addQForm');
@@ -1748,18 +1942,56 @@
         }
 
         async function submitAddQuestion() {
+            const questionType = document.getElementById('aqType').value;
             const question = document.getElementById('aqQuestion').value.trim();
-            const opts = [0, 1, 2, 3].map(i => document.getElementById(`aqOpt${i}`).value.trim());
-            const correctEl = document.querySelector('input[name="aqCorrect"]:checked');
             const errEl = document.getElementById('aqError');
-            if (!question || opts.some(o => !o)) { errEl.textContent = 'All fields are required.'; errEl.style.display = 'block'; return; }
-            if (!correctEl) { errEl.textContent = 'Please select the correct answer.'; errEl.style.display = 'block'; return; }
+            
+            if (!question) { 
+                errEl.textContent = 'Question text is required.'; 
+                errEl.style.display = 'block'; 
+                return; 
+            }
+            
+            let payload;
+            
+            if (questionType === 'multiple_choice') {
+                const opts = [0, 1, 2, 3].map(i => document.getElementById(`aqOpt${i}`).value.trim());
+                const correctEl = document.querySelector('input[name="aqCorrect"]:checked');
+                
+                if (opts.some(o => !o)) { 
+                    errEl.textContent = 'All option fields are required.'; 
+                    errEl.style.display = 'block'; 
+                    return; 
+                }
+                if (!correctEl) { 
+                    errEl.textContent = 'Please select the correct answer.'; 
+                    errEl.style.display = 'block'; 
+                    return; 
+                }
+                
+                payload = { 
+                    question, 
+                    opt0: opts[0], opt1: opts[1], opt2: opts[2], opt3: opts[3], 
+                    correct_idx: Number(correctEl.value),
+                    question_type: 'multiple_choice'
+                };
+            } else {
+                // Open-ended question
+                const modelAnswer = document.getElementById('aqModelAnswer').value.trim();
+                payload = { 
+                    question, 
+                    opt0: null, opt1: null, opt2: null, opt3: null, 
+                    correct_idx: null,
+                    question_type: 'open_ended',
+                    model_answer: modelAnswer || null
+                };
+            }
+            
             errEl.style.display = 'none';
-            const correct_idx = Number(correctEl.value);
             const res = await fetch(`${API}/admin/modules/${_editingModuleId}/questions`, {
                 method: 'POST',
                 headers: authHeaders(),
-                body: JSON.stringify({ question, opt0: opts[0], opt1: opts[1], opt2: opts[2], opt3: opts[3], correct_idx })
+                body: JSON.stringify(payload)
             });
             if (res.ok) {
                 document.getElementById('addQForm').style.display = 'none';
@@ -2176,7 +2408,425 @@
                 btn.disabled = false;
             }
         }
+
+        // ── Candidate Profile Modal ──────────────────────────────
+        let _currentCandidateData = null;
+
+        async function openCandidateProfile(candidateId) {
+            const overlay = document.getElementById('candidateProfileOverlay');
+            const title = document.getElementById('candidateProfileTitle');
+            const meta = document.getElementById('candidateProfileMeta');
+            const email = document.getElementById('cpEmail');
+            const registered = document.getElementById('cpRegistered');
+            const tests = document.getElementById('cpTests');
+            const avgScore = document.getElementById('cpAvgScore');
+            const quizBody = document.getElementById('cpQuizBody');
+            const diagramBody = document.getElementById('cpDiagramBody');
+
+            // Show loading state
+            title.textContent = 'Loading...';
+            meta.textContent = '';
+            overlay.classList.add('open');
+
+            try {
+                const res = await fetch(`${API}/admin/candidate/${candidateId}`, { headers: authHeaders() });
+                if (!res.ok) throw new Error('Failed to fetch candidate data');
+                const data = await res.json();
+                _currentCandidateData = data;
+
+                // Update header
+                title.textContent = data.name;
+                meta.textContent = `ID: ${data.id}`;
+
+                // Update stats
+                email.textContent = data.email;
+                registered.textContent = new Date(data.registered_at + 'Z').toLocaleDateString();
+                tests.textContent = data.session_count || '0';
+                avgScore.textContent = data.avg_score ? `${data.avg_score}%` : '—';
+
+                // Render quiz sessions
+                if (data.quizSessions && data.quizSessions.length > 0) {
+                    quizBody.innerHTML = '';
+                    data.quizSessions.forEach(s => {
+                        const pct = s.pct;
+                        const cls = pct >= 80 ? 'high' : pct >= 60 ? 'mid' : 'low';
+                        const date = new Date(s.submitted_at + 'Z').toLocaleString();
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${s.module_name}</td>
+                            <td>
+                                <div class="mini-bar-wrap">
+                                    <div class="mini-bar"><div class="mini-bar-fill ${cls}" style="width:${pct}%"></div></div>
+                                    <span class="score-badge ${cls}">${pct}%</span>
+                                </div>
+                            </td>
+                            <td style="color:var(--muted)">${s.score} / ${s.total}</td>
+                            <td style="color:var(--muted);font-size:.8rem;">${date}</td>
+                            <td style="display:flex;gap:6px;align-items:center;">
+                                <button class="review-btn" onclick="showCandidateSessionDetail(${s.id})">Review Answers</button>
+                                <button class="review-btn" onclick="exportCandidateSession(${s.id})" title="Export CSV" style="color:var(--muted);">⬇ CSV</button>
+                            </td>`;
+                        quizBody.appendChild(tr);
+                    });
+                } else {
+                    quizBody.innerHTML = '<tr><td colspan="5" class="empty-state">No quiz sessions</td></tr>';
+                }
+
+                // Render diagram submissions
+                if (data.diagramSubmissions && data.diagramSubmissions.length > 0) {
+                    diagramBody.innerHTML = '';
+                    data.diagramSubmissions.forEach(d => {
+                        const date = new Date(d.submitted_at + 'Z').toLocaleString();
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${d.module_name}</td>
+                            <td style="color:var(--muted);font-size:.8rem;">${date}</td>
+                            <td style="display:flex;gap:6px;align-items:center;">
+                                <button class="review-btn" onclick="viewDiagram(${d.id})">📐 View</button>
+                            </td>`;
+                        diagramBody.appendChild(tr);
+                    });
+                } else {
+                    diagramBody.innerHTML = '<tr><td colspan="3" class="empty-state">No diagram submissions</td></tr>';
+                }
+            } catch (err) {
+                title.textContent = 'Error';
+                meta.textContent = err.message;
+            }
+        }
+
+        function closeCandidateProfileModal(e) {
+            if (e.target === document.getElementById('candidateProfileOverlay')) {
+                closeCandidateProfileModalDirect();
+            }
+        }
+
+        function closeCandidateProfileModalDirect() {
+            document.getElementById('candidateProfileOverlay').classList.remove('open');
+            _currentCandidateData = null;
+        }
+
+        function showCandidateSessionDetail(sessionId) {
+            if (!_currentCandidateData) return;
+            const session = _currentCandidateData.quizSessions.find(s => s.id === sessionId);
+            if (!session) return;
+
+            // Reuse the existing showDetail modal but populate with session data
+            const pct = session.pct;
+            const cls = pct >= 80 ? 'high' : pct >= 60 ? 'mid' : 'low';
+            const date = new Date(session.submitted_at + 'Z').toLocaleString();
+
+            document.getElementById('modalTitle').textContent = `${_currentCandidateData.name} – ${session.module_name}`;
+            document.getElementById('modalMeta').textContent = `Submitted: ${date}`;
+
+            document.getElementById('modalScoreRow').innerHTML = `
+                <div class="modal-stat blue"><div class="v">${session.total}</div><div class="l">Questions</div></div>
+                <div class="modal-stat green"><div class="v">${session.score}</div><div class="l">Correct</div></div>
+                <div class="modal-stat red"><div class="v">${session.total - session.score}</div><div class="l">Incorrect</div></div>
+                <div class="modal-stat ${cls === 'high' ? 'green' : cls === 'mid' ? '' : 'red'}"><div class="v">${pct}%</div><div class="l">Score</div></div>`;
+
+            const body = document.getElementById('modalBody');
+            body.innerHTML = '';
+            (session.answers || []).forEach((a, i) => {
+                const correct = !!a.is_correct;
+                const skipped = !a.chosen_option;
+                let ansHtml = '';
+                if (skipped) {
+                    ansHtml = `<span style="color:var(--muted)">Not answered</span> &nbsp;·&nbsp; Correct: <span class="correct-ans">${a.correct_option}</span>`;
+                } else if (correct) {
+                    ansHtml = `<span class="correct-ans">✓ ${a.correct_option}</span>`;
+                } else {
+                    ansHtml = `Answered: <span class="wrong-ans">${a.chosen_option}</span> &nbsp;·&nbsp; Correct: <span class="correct-ans">${a.correct_option}</span>`;
+                }
+                const div = document.createElement('div');
+                div.className = 'review-item';
+                div.innerHTML = `
+                    <div class="review-icon">${correct ? '✅' : skipped ? '⬜' : '❌'}</div>
+                    <div>
+                        <div class="review-q">Q${i + 1}. ${a.question_text}</div>
+                        <div class="review-a">${ansHtml}</div>
+                    </div>`;
+                body.appendChild(div);
+            });
+
+            document.getElementById('modalOverlay').classList.add('open');
+        }
+
+        function exportCandidateSession(sessionId) {
+            if (!_currentCandidateData) return;
+            const s = _currentCandidateData.quizSessions.find(x => x.id === sessionId);
+            if (!s) return;
+            const date = new Date(s.submitted_at + 'Z').toLocaleString();
+            const rows = [
+                ['Candidate', _currentCandidateData.name],
+                ['Email', _currentCandidateData.email],
+                ['Module', s.module_name],
+                ['Score', `${s.pct}%`],
+                ['Correct', `${s.score} / ${s.total}`],
+                ['Date', date],
+                [],
+                ['#', 'Question', 'Answer Given', 'Correct Answer', 'Result']
+            ];
+            (s.answers || []).forEach((a, i) => {
+                rows.push([
+                    i + 1,
+                    a.question_text,
+                    a.chosen_option || 'Not answered',
+                    a.correct_option,
+                    a.is_correct ? 'Correct' : 'Incorrect'
+                ]);
+            });
+            const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const safeName = _currentCandidateData.name.replace(/[^a-z0-9]/gi, '_');
+            a.href = url;
+            a.download = `${safeName}_${s.module_name.replace(/[^a-z0-9]/gi, '_')}_${s.id}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function generateIndividualPDF() {
+            if (!_currentCandidateData) {
+                alert('No candidate data available');
+                return;
+            }
+
+            const btn = document.getElementById('btnIndividualPdf');
+            const origText = btn.innerHTML;
+            btn.innerHTML = '⏳ Generating…';
+            btn.disabled = true;
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+                const W = doc.internal.pageSize.getWidth();
+                const MARGIN = 18;
+                const CONTENT_W = W - MARGIN * 2;
+                const BRAND = [30, 90, 220];
+                const DARK = [20, 25, 45];
+                const MID = [90, 100, 130];
+                const SUCCESS = [34, 197, 94];
+                const DANGER = [239, 68, 68];
+                const WARN = [245, 158, 11];
+
+                const fmtDate = iso =>
+                    new Date(iso + (iso.includes('Z') ? '' : 'Z')).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                const scoreCls = pct => pct >= 80 ? SUCCESS : pct >= 60 ? WARN : DANGER;
+
+                const c = _currentCandidateData;
+                const genDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+                // ── HEADER ───────────────────────────────
+                doc.setFillColor(...BRAND);
+                doc.rect(0, 0, W, 48, 'F');
+
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(22);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Assessment Portal', MARGIN, 22);
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'normal');
+                doc.text(`Individual Report – ${c.name}`, MARGIN, 32);
+
+                doc.setFontSize(9);
+                doc.setTextColor(200, 215, 255);
+                doc.text(`Generated: ${genDate}`, W - MARGIN, 22, { align: 'right' });
+
+                // ── CANDIDATE INFO ───────────────────────
+                let y = 64;
+                doc.setTextColor(...DARK);
+                doc.setFontSize(13);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Candidate Information', MARGIN, y);
+                y += 8;
+
+                // Info cards
+                const infoCards = [
+                    { label: 'Email', value: c.email },
+                    { label: 'Registered', value: fmtDate(c.registered_at) },
+                    { label: 'Tests Taken', value: String(c.session_count || 0) },
+                    { label: 'Avg Score', value: c.avg_score ? `${c.avg_score}%` : '—' }
+                ];
+                const cardW = (CONTENT_W - 12) / 4;
+                infoCards.forEach((card, i) => {
+                    const cx = MARGIN + i * (cardW + 4);
+                    doc.setFillColor(245, 247, 255);
+                    doc.roundedRect(cx, y, cardW, 24, 3, 3, 'F');
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(11);
+                    doc.setTextColor(...BRAND);
+                    doc.text(card.value, cx + cardW / 2, y + 11, { align: 'center' });
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(7.5);
+                    doc.setTextColor(...MID);
+                    doc.text(card.label.toUpperCase(), cx + cardW / 2, y + 19, { align: 'center' });
+                });
+                y += 34;
+
+                // ── QUIZ SESSIONS ──
+                if (c.quizSessions && c.quizSessions.length > 0) {
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(11);
+                    doc.setTextColor(...DARK);
+                    doc.text('Quiz Results', MARGIN, y);
+                    y += 5;
+
+                    doc.autoTable({
+                        startY: y,
+                        margin: { left: MARGIN, right: MARGIN },
+                        head: [['Module', 'Score', 'Correct / Total', 'Date']],
+                        body: c.quizSessions.map(s => [
+                            s.module_name,
+                            `${s.pct}%`,
+                            `${s.score} / ${s.total}`,
+                            fmtDate(s.submitted_at)
+                        ]),
+                        styles: { fontSize: 9, cellPadding: 4 },
+                        headStyles: { fillColor: BRAND, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8.5 },
+                        alternateRowStyles: { fillColor: [247, 249, 255] },
+                        columnStyles: {
+                            1: { halign: 'center', fontStyle: 'bold' },
+                            2: { halign: 'center' },
+                            3: { halign: 'center' }
+                        },
+                        didParseCell: (hookData) => {
+                            if (hookData.column.index === 1 && hookData.section === 'body') {
+                                const pct = parseInt(hookData.cell.text[0]);
+                                hookData.cell.styles.textColor = scoreCls(pct);
+                            }
+                        }
+                    });
+
+                    y = doc.lastAutoTable.finalY + 12;
+
+                    // Answer breakdown per session
+                    for (const s of c.quizSessions) {
+                        if (y > 240) { doc.addPage(); y = MARGIN; }
+                        doc.setFont('helvetica', 'bolditalic');
+                        doc.setFontSize(9);
+                        doc.setTextColor(...MID);
+                        doc.text(`${s.module_name} — Answer Breakdown`, MARGIN, y);
+                        y += 4;
+
+                        if (s.answers && s.answers.length > 0) {
+                            doc.autoTable({
+                                startY: y,
+                                margin: { left: MARGIN + 4, right: MARGIN },
+                                head: [['#', 'Question', 'Answer Given', 'Correct Answer', '✓']],
+                                body: s.answers.map((a, i) => [
+                                    i + 1,
+                                    a.question_text.length > 60 ? a.question_text.slice(0, 57) + '…' : a.question_text,
+                                    a.chosen_option || '(skipped)',
+                                    a.correct_option,
+                                    a.is_correct ? '✓' : '✗'
+                                ]),
+                                styles: { fontSize: 7.5, cellPadding: 2.5, overflow: 'linebreak' },
+                                headStyles: { fillColor: [60, 80, 140], textColor: [255, 255, 255], fontSize: 7.5, fontStyle: 'bold' },
+                                alternateRowStyles: { fillColor: [250, 251, 255] },
+                                columnStyles: {
+                                    0: { cellWidth: 8, halign: 'center' },
+                                    1: { cellWidth: 80 },
+                                    2: { cellWidth: 38 },
+                                    3: { cellWidth: 38 },
+                                    4: { cellWidth: 10, halign: 'center', fontStyle: 'bold' }
+                                },
+                                didParseCell: (hookData) => {
+                                    if (hookData.column.index === 4 && hookData.section === 'body') {
+                                        hookData.cell.styles.textColor =
+                                            hookData.cell.text[0] === '✓' ? SUCCESS : DANGER;
+                                    }
+                                }
+                            });
+                            y = doc.lastAutoTable.finalY + 10;
+                        }
+                    }
+                } else {
+                    doc.setFont('helvetica', 'italic');
+                    doc.setFontSize(9.5);
+                    doc.setTextColor(...MID);
+                    doc.text('No quiz sessions on record.', MARGIN, y);
+                    y += 14;
+                }
+
+                // ── DIAGRAM SUBMISSIONS ──
+                if (c.diagramSubmissions && c.diagramSubmissions.length > 0) {
+                    for (const d of c.diagramSubmissions) {
+                        if (y > 210) { doc.addPage(); y = MARGIN; }
+
+                        doc.setFillColor(245, 247, 255);
+                        doc.roundedRect(MARGIN, y, CONTENT_W, 10, 2, 2, 'F');
+                        doc.setFont('helvetica', 'bold');
+                        doc.setFontSize(10);
+                        doc.setTextColor(...DARK);
+                        doc.text(`📐  ${d.module_name}`, MARGIN + 4, y + 7);
+                        doc.setFont('helvetica', 'normal');
+                        doc.setFontSize(8.5);
+                        doc.setTextColor(...MID);
+                        doc.text(`Submitted: ${fmtDate(d.submitted_at)}`, W - MARGIN - 4, y + 7, { align: 'right' });
+                        y += 14;
+
+                        if (d.image_data) {
+                            try {
+                                const imgMaxH = 90;
+                                const imgW = CONTENT_W;
+                                await new Promise(resolve => {
+                                    const img = new Image();
+                                    img.onload = () => {
+                                        const aspect = img.naturalWidth / img.naturalHeight;
+                                        const imgH = Math.min(imgMaxH, imgW / aspect);
+                                        if (y + imgH > 280) { doc.addPage(); y = MARGIN; }
+                                        doc.addImage(d.image_data, 'PNG', MARGIN, y, imgW, imgH);
+                                        y += imgH + 10;
+                                        resolve();
+                                    };
+                                    img.onerror = () => { resolve(); };
+                                    img.src = d.image_data;
+                                });
+                            } catch {
+                                doc.setFont('helvetica', 'italic');
+                                doc.setFontSize(8.5);
+                                doc.setTextColor(...MID);
+                                doc.text('(Diagram image could not be rendered.)', MARGIN, y);
+                                y += 10;
+                            }
+                        } else {
+                            doc.setFont('helvetica', 'italic');
+                            doc.setFontSize(8.5);
+                            doc.setTextColor(...MID);
+                            doc.text('No image captured for this submission.', MARGIN, y);
+                            y += 10;
+                        }
+                    }
+                }
+
+                // Page footer
+                const totalPages = doc.internal.pages.length - 1;
+                for (let p = 1; p <= totalPages; p++) {
+                    doc.setPage(p);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(7.5);
+                    doc.setTextColor(...MID);
+                    doc.text(`Assessment Portal Report  ·  ${genDate}`, MARGIN, 292);
+                    doc.text(`Page ${p} of ${totalPages}`, W - MARGIN, 292, { align: 'right' });
+                }
+
+                // Download
+                const dateStr = new Date().toISOString().slice(0, 10);
+                const safeName = c.name.replace(/[^a-z0-9]/gi, '_');
+                doc.save(`${safeName}-report-${dateStr}.pdf`);
+
+            } catch (err) {
+                alert('Failed to generate report: ' + err.message);
+            } finally {
+                btn.innerHTML = origText;
+                btn.disabled = false;
+            }
+        }
     </script>
 </body>
+
 
 </html>

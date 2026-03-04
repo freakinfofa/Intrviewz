@@ -1,0 +1,71 @@
+# Cline Rules for Intrviewz Project
+
+## Deployment Policy: Docker Only
+
+### Core Principle
+**ALWAYS deploy using Docker containers. NEVER install project dependencies on the local machine.**
+
+### Rules
+
+1. **No Local Dependency Installation**
+   - DO NOT run `npm install`, `pip install`, or any package manager commands directly on the host machine
+   - DO NOT install global tools or CLI utilities locally
+   - All dependencies must be installed within Docker containers only
+
+2. **Container-Based Development**
+   - Use Docker Compose for local development: `docker-compose up --build`
+   - All builds must happen inside containers
+   - Use multi-stage Docker builds where appropriate
+
+3. **Accessing Container Shells**
+   - If you need to run commands inside the container, use:
+     ```bash
+     docker-compose exec <service> <command>
+     ```
+   - Example: `docker-compose exec app npm install <package>` (only if adding new dependencies)
+
+4. **Dependency Updates**
+   - When adding new dependencies, update the Dockerfile or docker-compose configuration
+   - Test changes by rebuilding: `docker-compose up --build --force-recreate`
+
+5. **Port and Volume Management**
+   - Expose necessary ports through docker-compose.yml
+   - Use volume mounts for development hot-reloading
+   - Ensure data persistence through named volumes
+
+6. **Environment Configuration**
+   - Use .env files for environment variables
+   - Never commit sensitive credentials
+   - Document required environment variables in README.md
+
+### Common Commands
+
+```bash
+# Start the application
+docker-compose up
+
+# Start in detached mode
+docker-compose up -d
+
+# Rebuild containers
+docker-compose up --build
+
+# Access container shell
+docker-compose exec app sh
+
+# View logs
+docker-compose logs -f
+
+# Stop and remove containers
+docker-compose down
+
+# Clean rebuild (removes volumes and rebuilds)
+docker-compose down -v && docker-compose up --build
+```
+
+### Project-Specific Notes
+
+- This project uses Node.js/Express (based on server.js and package.json)
+- Database: SQLite (assessment.db)
+- Excalidraw integration present
+- Frontend assets in public/

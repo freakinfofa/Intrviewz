@@ -206,6 +206,31 @@
             font-size: .97rem;
         }
 
+        .open-ended-input {
+            width: 100%;
+            background: var(--surface2);
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            padding: 16px 20px;
+            color: var(--text);
+            font-family: inherit;
+            font-size: .95rem;
+            line-height: 1.6;
+            resize: vertical;
+            min-height: 120px;
+            outline: none;
+            transition: border-color .18s, background .18s;
+        }
+
+        .open-ended-input:focus {
+            border-color: var(--accent);
+            background: rgba(79, 142, 247, .07);
+        }
+
+        .open-ended-input::placeholder {
+            color: var(--muted);
+        }
+
         .quiz-nav {
             display: flex;
             align-items: center;
@@ -489,26 +514,57 @@
             current = idx;
             const q = questions[idx];
             document.getElementById('qNum').textContent = idx + 1;
-            // questions from DB may be sent with `opts` array or `opt0...3` fields
-            const opts = q.opts || [q.opt0, q.opt1, q.opt2, q.opt3].filter(Boolean);
             document.getElementById('questionText').textContent = `Q${idx + 1}. ${q.question || q.q}`;
             document.getElementById('progressFill').style.width =
                 `${Math.round(((idx + 1) / questions.length) * 100)}%`;
 
             const container = document.getElementById('optionsContainer');
             container.innerHTML = '';
-            opts.forEach((opt, i) => {
-                const div = document.createElement('div');
-                div.className = 'option' + (userAnswers[idx] === i ? ' selected' : '');
-                div.innerHTML = `<div class="option-radio"></div><span class="option-label">${opt}</span>`;
-                div.addEventListener('click', () => {
-                    userAnswers[idx] = i;
+            
+            // Check if this is an open-ended question
+            const isOpenEnded = q.question_type === 'open_ended';
+            
+            if (isOpenEnded) {
+                // Render textarea for open-ended questions
+                const textarea = document.createElement('textarea');
+                textarea.className = 'open-ended-input';
+                textarea.placeholder = 'Enter your answer here...';
+                textarea.value = userAnswers[idx] || '';
+                
+                // Auto-save as user types
+                const autoSave = () => {
+                    userAnswers[idx] = textarea.value.trim() || null;
                     saveProgress();
-                    showSavedToast();
-                    renderQuestion(idx);
+                    updateDots();
+                };
+                
+                textarea.addEventListener('input', () => {
+                    // Debounce save
+                    clearTimeout(saveTimer);
+                    saveTimer = setTimeout(autoSave, 500);
                 });
-                container.appendChild(div);
-            });
+                
+                textarea.addEventListener('blur', autoSave);
+                
+                container.appendChild(textarea);
+                // Focus on load
+                setTimeout(() => textarea.focus(), 50);
+            } else {
+                // questions from DB may be sent with `opts` array or `opt0...3` fields
+                const opts = q.opts || [q.opt0, q.opt1, q.opt2, q.opt3].filter(Boolean);
+                opts.forEach((opt, i) => {
+                    const div = document.createElement('div');
+                    div.className = 'option' + (userAnswers[idx] === i ? ' selected' : '');
+                    div.innerHTML = `<div class="option-radio"></div><span class="option-label">${opt}</span>`;
+                    div.addEventListener('click', () => {
+                        userAnswers[idx] = i;
+                        saveProgress();
+                        showSavedToast();
+                        renderQuestion(idx);
+                    });
+                    container.appendChild(div);
+                });
+            }
 
             document.getElementById('prevBtn').disabled = idx === 0;
             document.getElementById('nextBtn').disabled = idx === questions.length - 1;
@@ -550,10 +606,14 @@
 
             // Map answers to the format /api/submit expects
             const answers = questions.map((q, i) => {
+                const isOpenEnded = q.question_type === 'open_ended';
                 const opts = q.opts || [q.opt0, q.opt1, q.opt2, q.opt3].filter(Boolean);
                 return {
                     question_index: i,
-                    chosen_option: userAnswers[i] !== null ? opts[userAnswers[i]] : null
+                    chosen_option: userAnswers[i] !== null 
+                        ? (isOpenEnded ? userAnswers[i] : opts[userAnswers[i]]) 
+                        : null,
+                    is_open_ended: isOpenEnded
                 };
             });
 

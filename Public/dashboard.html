@@ -310,31 +310,18 @@
                 <thead>
                     <tr>
                         <th>Module</th>
-                        <th>Score</th>
-                        <th>Correct / Total</th>
+                        <th>Status</th>
                         <th>Date</th>
-                        <th>Details</th>
                     </tr>
                 </thead>
                 <tbody id="resultsBody">
                     <tr>
-                        <td colspan="5" class="empty-state"><span class="spinner"></span></td>
+                        <td colspan="3" class="empty-state"><span class="spinner"></span></td>
                     </tr>
                 </tbody>
             </table>
         </div>
     </main>
-
-    <!-- Detail Modal -->
-    <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
-        <div class="modal">
-            <div class="modal-header">
-                <h3 id="modalTitle">Question Review</h3>
-                <button class="modal-close" onclick="closeModalDirect()">✕</button>
-            </div>
-            <div id="modalBody"></div>
-        </div>
-    </div>
 
     <script src="js/app.js"></script>
     <script>
@@ -347,7 +334,7 @@
         document.getElementById('navName').textContent = candidateName || '—';
 
         // ── Load Modules ──
-        async function loadModules(completedModules = new Map()) {
+        async function loadModules(completedModules = new Set()) {
             try {
                 const res = await fetch(`${API}/modules`, { headers: authHeaders() });
                 const mods = await res.json();
@@ -357,8 +344,6 @@
                     const done = completedModules.has(m.id);
                     const retakeOk = !!m.retakeGranted;
                     const locked = done && !retakeOk;
-                    const bestPct = done ? completedModules.get(m.id) : null;
-                    const scoreCls = bestPct >= 80 ? 'high' : bestPct >= 60 ? 'mid' : 'low';
 
                     const el = document.createElement('div');
                     // Resolve where clicking the module takes the user:
@@ -369,8 +354,6 @@
                     const isDiagram = (m.url || '').includes('diagram');
                     const moduleType = isDiagram ? 'Interactive Diagram' : 'Multiple Choice';
                     const questionsLabel = isDiagram ? 'Whiteboard' : `${m.questions} Questions`;
-                    const scoreDisplay = (done && bestPct >= 0) ? `<span class="pill score-badge ${scoreCls}" style="font-size:.72rem;">Best: ${bestPct}%</span>` :
-                        (done && bestPct === -1) ? `<span class="pill score-badge" style="font-size:.72rem;background:rgba(79,142,247,.12);color:#93c5fd;border:1px solid rgba(79,142,247,.3);">✓ Submitted</span>` : '';
                     el.innerHTML = `
           <div class="card-tags">
             ${!m.ready ? '<span class="coming-tag">Coming Soon</span>' : ''}
@@ -386,7 +369,6 @@
             <span class="pill ${m.ready ? 'ready' : ''}">​${m.ready ? '● Ready' : 'Coming Soon'}</span>
             <span class="pill">${questionsLabel}</span>
             <span class="pill">${moduleType}</span>
-            ${scoreDisplay}
           </div>
           ${m.ready && !locked ? `
           <div style="margin-top:14px;">
@@ -442,24 +424,21 @@
                     if (dsRes.ok) diagramSubs = await dsRes.json();
                 } catch { /* ignore */ }
 
-                // Build map of moduleId → best score for module cards
-                const completedModules = new Map();
+                // Build set of completed module IDs (no scores shown to candidates)
+                const completedModules = new Set();
                 results.forEach(r => {
-                    const prev = completedModules.get(r.module_id) ?? -1;
-                    if (r.pct > prev) completedModules.set(r.module_id, r.pct);
+                    completedModules.add(r.module_id);
                 });
-                // Mark diagram modules as completed (no score, use -1 as sentinel)
+                // Mark diagram modules as completed
                 diagramSubs.forEach(ds => {
-                    if (!completedModules.has(ds.module_id)) {
-                        completedModules.set(ds.module_id, -1);
-                    }
+                    completedModules.add(ds.module_id);
                 });
                 loadModules(completedModules);
 
                 const hasAny = results.length > 0 || diagramSubs.length > 0;
 
                 if (!hasAny) {
-                    tbody.innerHTML = `<tr><td colspan="5" class="empty-state">
+                    tbody.innerHTML = `<tr><td colspan="3" class="empty-state">
                         <img src="images/empty-state.png" alt="No results" class="empty-state-icon" /><br/>
                         No tests completed yet. Select a module above to get started!
                     </td></tr>`;
@@ -469,16 +448,12 @@
 
                 // ── Completed quiz results ──
                 results.forEach(r => {
-                    const pct = r.pct;
-                    const cls = pct >= 80 ? 'high' : pct >= 60 ? 'mid' : 'low';
                     const date = new Date(r.submitted_at + 'Z').toLocaleString();
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
           <td><strong>${r.module_name}</strong></td>
-          <td><span class="score-badge ${cls}">${pct}%</span></td>
-          <td>${r.score} / ${r.total}</td>
-          <td style="color:var(--muted);font-size:.82rem;">${date}</td>
-          <td><button onclick="showDetail(${r.id})" style="background:none;border:1px solid var(--border);color:var(--accent);padding:5px 12px;border-radius:7px;cursor:pointer;font-size:.8rem;font-family:inherit;">Review</button></td>`;
+          <td><span class="pill" style="background:rgba(34,197,94,.12);color:#86efac;border-color:rgba(34,197,94,.3);">✓ Submitted</span></td>
+          <td style="color:var(--muted);font-size:.82rem;">${date}</td>`;
                     tbody.appendChild(tr);
                 });
 
@@ -488,10 +463,8 @@
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
           <td><strong>${ds.module_name}</strong></td>
-          <td><span class="score-badge" style="background:rgba(79,142,247,.12);color:#93c5fd;border:1px solid rgba(79,142,247,.3);font-size:.72rem;">📐 Diagram</span></td>
-          <td style="color:var(--muted);">Submitted</td>
-          <td style="color:var(--muted);font-size:.82rem;">${date}</td>
-          <td><span style="font-size:.8rem;color:var(--muted);">✓ Submitted</span></td>`;
+          <td><span class="pill" style="background:rgba(79,142,247,.12);color:#93c5fd;border:1px solid rgba(79,142,247,.3);">📐 Diagram Submitted</span></td>
+          <td style="color:var(--muted);font-size:.82rem;">${date}</td>`;
                     tbody.appendChild(tr);
                 });
 
@@ -514,50 +487,15 @@
                         tr.style.opacity = '0.82';
                         tr.innerHTML = `
           <td><strong>${m.name}</strong></td>
-          <td><span class="score-badge" style="background:rgba(245,158,11,.15);color:#fcd34d;border-color:rgba(245,158,11,.3);font-size:.72rem;">In Progress</span></td>
-          <td style="color:var(--muted);">${answered} / ${m.questions} answered</td>
-          <td style="color:var(--muted);font-size:.82rem;">Not submitted</td>
-          <td><button onclick="window.location.href='${quizUrl}'" style="background:none;border:1px solid var(--border);color:var(--accent);padding:5px 12px;border-radius:7px;cursor:pointer;font-size:.8rem;font-family:inherit;">&#9654; Resume</button></td>`;
+          <td><span class="pill" style="background:rgba(245,158,11,.15);color:#fcd34d;border-color:rgba(245,158,11,.3);">⏸ In Progress</span></td>
+          <td style="color:var(--muted);font-size:.82rem;"><a href="${quizUrl}" style="color:var(--accent);text-decoration:none;">Resume →</a></td>`;
                         tbody.appendChild(tr);
                     } catch { /* ignore */ }
                 });
-
-                // Store results for modal
-                window._results = results;
             } catch {
-                tbody.innerHTML = '<tr><td colspan="5" class="empty-state" style="color:var(--danger);">Failed to load results.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="3" class="empty-state" style="color:var(--danger);">Failed to load results.</td></tr>';
                 loadModules(); // still load modules even if results fail
             }
-        }
-
-        function showDetail(sessionId) {
-            const r = (window._results || []).find(x => x.id === sessionId);
-            if (!r) return;
-            document.getElementById('modalTitle').textContent = `Review – ${r.module_name} (${r.pct}%)`;
-            const body = document.getElementById('modalBody');
-            body.innerHTML = '';
-            (r.answers || []).forEach((a, i) => {
-                const correct = !!a.is_correct;
-                const skipped = !a.chosen_option;
-                let ansHtml = '';
-                if (skipped) {
-                    ansHtml = `<span style="color:var(--muted)">Not answered</span>`;
-                } else if (correct) {
-                    ansHtml = `<span class="correct-ans">✓ ${a.chosen_option}</span>`;
-                } else {
-                    ansHtml = `<span class="wrong-ans">✗ ${a.chosen_option}</span> <span style="color:var(--muted);font-size:.78rem;">— Incorrect</span>`;
-                }
-                const div = document.createElement('div');
-                div.className = 'review-item';
-                div.innerHTML = `
-        <div class="review-icon">${correct ? '✅' : skipped ? '⬜' : '❌'}</div>
-        <div>
-          <div class="review-q">Q${i + 1}. ${a.question_text}</div>
-          <div class="review-a">${ansHtml}</div>
-        </div>`;
-                body.appendChild(div);
-            });
-            document.getElementById('modalOverlay').classList.add('open');
         }
 
         // loadModules is called by loadResults once completion data is known

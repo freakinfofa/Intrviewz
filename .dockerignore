@@ -6,3 +6,4 @@ assessment.db
 *.md
 .env
 .dockerignore
+nginx/

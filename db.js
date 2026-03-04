@@ -66,11 +66,13 @@ db.exec(`
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     module_id   TEXT    NOT NULL REFERENCES modules(id) ON DELETE CASCADE,
     question    TEXT    NOT NULL,
-    opt0        TEXT    NOT NULL,
-    opt1        TEXT    NOT NULL,
-    opt2        TEXT    NOT NULL,
-    opt3        TEXT    NOT NULL,
-    correct_idx INTEGER NOT NULL,
+    opt0        TEXT,
+    opt1        TEXT,
+    opt2        TEXT,
+    opt3        TEXT,
+    correct_idx INTEGER,
+    question_type TEXT  NOT NULL DEFAULT 'multiple_choice',
+    model_answer TEXT,
     sort_order  INTEGER NOT NULL DEFAULT 0,
     created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
   );
@@ -94,5 +96,23 @@ try {
     db.prepare(`UPDATE modules SET module_type = 'diagram' WHERE id = 'diagram-design'`).run();
     console.log('🔧  Migration: added module_type column to modules table.');
 } catch { /* column already exists — no-op */ }
+
+// Migration: Add question_type and model_answer columns
+try {
+    db.exec(`ALTER TABLE questions ADD COLUMN question_type TEXT NOT NULL DEFAULT 'multiple_choice'`);
+    console.log('🔧  Migration: added question_type column to questions table.');
+} catch { /* column already exists — no-op */ }
+
+try {
+    db.exec(`ALTER TABLE questions ADD COLUMN model_answer TEXT`);
+    console.log('🔧  Migration: added model_answer column to questions table.');
+} catch { /* column already exists — no-op */ }
+
+// Migration: Make opt columns nullable for open-ended questions
+try {
+    // SQLite doesn't support ALTER COLUMN, but we can add columns as nullable
+    // For existing columns, we just need to ensure new questions handle nulls properly
+    // The schema above already defines them as nullable for new tables
+} catch { /* no-op */ }
 
 module.exports = db;

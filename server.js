@@ -10,7 +10,7 @@ const sgMail = require('@sendgrid/mail');
 const db = require('./db');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 const SECRET = process.env.JWT_SECRET;
 if (!SECRET) {
     console.error('❌  FATAL: JWT_SECRET environment variable is required. Set it in your .env file.');
@@ -123,8 +123,8 @@ const SEED_DATA = {
          VALUES (@id, @name, @icon, @description, @url, @module_type, @is_active, @sort_order)`
     );
     const insertQuestion = db.prepare(
-        `INSERT INTO questions (module_id, question, opt0, opt1, opt2, opt3, correct_idx, sort_order)
-         VALUES (@module_id, @question, @opt0, @opt1, @opt2, @opt3, @correct_idx, @sort_order)`
+        `INSERT INTO questions (module_id, question, opt0, opt1, opt2, opt3, correct_idx, question_type, sort_order)
+         VALUES (@module_id, @question, @opt0, @opt1, @opt2, @opt3, @correct_idx, @question_type, @sort_order)`
     );
     const seedTx = db.transaction(() => {
         let added = 0;
@@ -143,6 +143,7 @@ const SEED_DATA = {
                     opt0: q.opts[0], opt1: q.opts[1],
                     opt2: q.opts[2], opt3: q.opts[3],
                     correct_idx: q.ans,
+                    question_type: 'multiple_choice',
                     sort_order: i
                 });
             });
@@ -158,9 +159,13 @@ app.get('/api/questions/:moduleId', auth, (req, res) => {
     const mod = db.prepare('SELECT id FROM modules WHERE id = ?').get(req.params.moduleId);
     if (!mod) return res.status(404).json({ error: 'Module not found.' });
     const qs = db.prepare(
-        'SELECT question as q, opt0, opt1, opt2, opt3 FROM questions WHERE module_id = ? ORDER BY sort_order, id'
+        'SELECT question as q, opt0, opt1, opt2, opt3, question_type FROM questions WHERE module_id = ? ORDER BY sort_order, id'
     ).all(req.params.moduleId);
-    res.json(qs.map(r => ({ q: r.q, opts: [r.opt0, r.opt1, r.opt2, r.opt3] })));
+    res.json(qs.map(r => ({
+        q: r.q,
+        question_type: r.question_type || 'multiple_choice',
+        opts: r.question_type === 'open_ended' ? null : [r.opt0, r.opt1, r.opt2, r.opt3].filter(Boolean)
+    })));
 });
 
 // ── Candidate auth middleware ─────────────────────────────
@@ -399,16 +404,36 @@ app.get('/api/admin/modules/:id/questions', adminAuth, (req, res) => {
 app.post('/api/admin/modules/:id/questions', adminAuth, (req, res) => {
     const mod = db.prepare('SELECT id FROM modules WHERE id = ?').get(req.params.id);
     if (!mod) return res.status(404).json({ error: 'Module not found.' });
-    const { question, opt0, opt1, opt2, opt3, correct_idx } = req.body;
-    if (!question || opt0 === undefined || opt1 === undefined || opt2 === undefined || opt3 === undefined || correct_idx === undefined)
-        return res.status(400).json({ error: 'question, opt0–opt3, and correct_idx are all required.' });
-    if (![0, 1, 2, 3].includes(Number(correct_idx)))
-        return res.status(400).json({ error: 'correct_idx must be 0, 1, 2, or 3.' });
+    const { question, opt0, opt1, opt2, opt3, correct_idx, question_type, model_answer } = req.body;
+    
+    // Validate based on question type
+    const qType = question_type || 'multiple_choice';
+    if (qType === 'multiple_choice') {
+        if (!question || opt0 === undefined || opt1 === undefined || opt2 === undefined || opt3 === undefined || correct_idx === undefined)
+            return res.status(400).json({ error: 'question, opt0–opt3, and correct_idx are all required for multiple choice questions.' });
+        if (![0, 1, 2, 3].includes(Number(correct_idx)))
+            return res.status(400).json({ error: 'correct_idx must be 0, 1, 2, or 3.' });
+    } else if (qType === 'open_ended') {
+        if (!question)
+            return res.status(400).json({ error: 'question is required for open-ended questions.' });
+    }
+    
     const maxOrder = db.prepare('SELECT MAX(sort_order) as m FROM questions WHERE module_id = ?').get(req.params.id).m ?? -1;
     const result = db.prepare(
-        `INSERT INTO questions (module_id, question, opt0, opt1, opt2, opt3, correct_idx, sort_order)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(req.params.id, question.trim(), opt0.trim(), opt1.trim(), opt2.trim(), opt3.trim(), Number(correct_idx), maxOrder + 1);
+        `INSERT INTO questions (module_id, question, opt0, opt1, opt2, opt3, correct_idx, question_type, model_answer, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(
+        req.params.id, 
+        question.trim(), 
+        opt0?.trim() || null, 
+        opt1?.trim() || null, 
+        opt2?.trim() || null, 
+        opt3?.trim() || null, 
+        correct_idx !== undefined ? Number(correct_idx) : null,
+        qType,
+        model_answer?.trim() || null,
+        maxOrder + 1
+    );
     res.json({ ok: true, id: result.lastInsertRowid });
 });
 
@@ -416,18 +441,25 @@ app.post('/api/admin/modules/:id/questions', adminAuth, (req, res) => {
 app.put('/api/admin/questions/:qid', adminAuth, (req, res) => {
     const q = db.prepare('SELECT * FROM questions WHERE id = ?').get(req.params.qid);
     if (!q) return res.status(404).json({ error: 'Question not found.' });
-    const { question, opt0, opt1, opt2, opt3, correct_idx } = req.body;
-    if (correct_idx !== undefined && ![0, 1, 2, 3].includes(Number(correct_idx)))
+    const { question, opt0, opt1, opt2, opt3, correct_idx, question_type, model_answer } = req.body;
+    
+    // Validate correct_idx if provided
+    if (correct_idx !== undefined && correct_idx !== null && ![0, 1, 2, 3].includes(Number(correct_idx)))
         return res.status(400).json({ error: 'correct_idx must be 0, 1, 2, or 3.' });
+    
+    const qType = question_type ?? q.question_type;
+    
     db.prepare(
-        `UPDATE questions SET question = ?, opt0 = ?, opt1 = ?, opt2 = ?, opt3 = ?, correct_idx = ? WHERE id = ?`
+        `UPDATE questions SET question = ?, opt0 = ?, opt1 = ?, opt2 = ?, opt3 = ?, correct_idx = ?, question_type = ?, model_answer = ? WHERE id = ?`
     ).run(
         (question ?? q.question).trim(),
-        (opt0 ?? q.opt0).trim(),
-        (opt1 ?? q.opt1).trim(),
-        (opt2 ?? q.opt2).trim(),
-        (opt3 ?? q.opt3).trim(),
-        correct_idx !== undefined ? Number(correct_idx) : q.correct_idx,
+        opt0 !== undefined ? (opt0?.trim() || null) : q.opt0,
+        opt1 !== undefined ? (opt1?.trim() || null) : q.opt1,
+        opt2 !== undefined ? (opt2?.trim() || null) : q.opt2,
+        opt3 !== undefined ? (opt3?.trim() || null) : q.opt3,
+        correct_idx !== undefined ? (correct_idx !== null ? Number(correct_idx) : null) : q.correct_idx,
+        qType,
+        model_answer !== undefined ? (model_answer?.trim() || null) : q.model_answer,
         q.id
     );
     res.json({ ok: true });
@@ -438,6 +470,38 @@ app.delete('/api/admin/questions/:qid', adminAuth, (req, res) => {
     const q = db.prepare('SELECT id FROM questions WHERE id = ?').get(req.params.qid);
     if (!q) return res.status(404).json({ error: 'Question not found.' });
     db.prepare('DELETE FROM questions WHERE id = ?').run(q.id);
+    res.json({ ok: true });
+});
+
+// ── PATCH /api/admin/questions/:qid/reorder ───────────────
+// Move a question up or down in the sort order
+// Body: { direction: 'up' | 'down' }
+app.patch('/api/admin/questions/:qid/reorder', adminAuth, (req, res) => {
+    const q = db.prepare('SELECT * FROM questions WHERE id = ?').get(req.params.qid);
+    if (!q) return res.status(404).json({ error: 'Question not found.' });
+    
+    const { direction } = req.body;
+    if (!direction || !['up', 'down'].includes(direction))
+        return res.status(400).json({ error: 'direction must be "up" or "down".' });
+
+    // Find the adjacent question to swap with
+    const adjacentQ = db.prepare(
+        direction === 'up'
+            ? 'SELECT * FROM questions WHERE module_id = ? AND (sort_order < ? OR (sort_order = ? AND id < ?)) ORDER BY sort_order DESC, id DESC LIMIT 1'
+            : 'SELECT * FROM questions WHERE module_id = ? AND (sort_order > ? OR (sort_order = ? AND id > ?)) ORDER BY sort_order ASC, id ASC LIMIT 1'
+    ).get(q.module_id, q.sort_order, q.sort_order, q.id);
+
+    if (!adjacentQ)
+        return res.status(400).json({ error: `Cannot move ${direction}: already at the ${direction === 'up' ? 'top' : 'bottom'}.` });
+
+    // Swap sort_order values
+    const updateStmt = db.prepare('UPDATE questions SET sort_order = ? WHERE id = ?');
+    const doSwap = db.transaction(() => {
+        updateStmt.run(adjacentQ.sort_order, q.id);
+        updateStmt.run(q.sort_order, adjacentQ.id);
+    });
+    doSwap();
+
     res.json({ ok: true });
 });
 
@@ -485,8 +549,8 @@ app.post('/api/admin/modules/:id/import-csv', adminAuth, (req, res) => {
     const imported = [], skipped = [];
 
     const insertStmt = db.prepare(
-        `INSERT INTO questions (module_id, question, opt0, opt1, opt2, opt3, correct_idx, sort_order)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO questions (module_id, question, opt0, opt1, opt2, opt3, correct_idx, question_type, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     );
 
     const doImport = db.transaction(() => {
@@ -498,19 +562,35 @@ app.post('/api/admin/modules/:id/import-csv', adminAuth, (req, res) => {
 
         dataRows.forEach((fields, i) => {
             const rowNum = (hasHeader ? i + 2 : i + 1);
-            // Expected: question, opt0, opt1, opt2, opt3, correct_idx
-            if (fields.length < 6) {
-                skipped.push({ row: rowNum, reason: 'Not enough columns (need 6: question, A, B, C, D, correct_index)' });
-                return;
-            }
-            const [question, opt0, opt1, opt2, opt3, correctRaw] = fields;
-            const correct_idx = parseInt(correctRaw, 10);
-            if (!question) { skipped.push({ row: rowNum, reason: 'Question text is empty' }); return; }
-            if (!opt0 || !opt1 || !opt2 || !opt3) { skipped.push({ row: rowNum, reason: 'One or more options are empty' }); return; }
-            if (![0, 1, 2, 3].includes(correct_idx)) { skipped.push({ row: rowNum, reason: `correct_index must be 0–3, got "${correctRaw}"` }); return; }
+            
+            // Check for question_type column (optional, defaults to multiple_choice)
+            const hasTypeCol = fields.length >= 7;
+            const qType = hasTypeCol ? fields[6]?.trim() : 'multiple_choice';
+            const isMultipleChoice = !qType || qType === 'multiple_choice';
+            
+            if (isMultipleChoice) {
+                // Expected: question, opt0, opt1, opt2, opt3, correct_idx [, question_type]
+                if (fields.length < 6) {
+                    skipped.push({ row: rowNum, reason: 'Not enough columns (need 6: question, A, B, C, D, correct_index)' });
+                    return;
+                }
+                const [question, opt0, opt1, opt2, opt3, correctRaw] = fields;
+                const correct_idx = parseInt(correctRaw, 10);
+                if (!question) { skipped.push({ row: rowNum, reason: 'Question text is empty' }); return; }
+                if (!opt0 || !opt1 || !opt2 || !opt3) { skipped.push({ row: rowNum, reason: 'One or more options are empty' }); return; }
+                if (![0, 1, 2, 3].includes(correct_idx)) { skipped.push({ row: rowNum, reason: `correct_index must be 0–3, got "${correctRaw}"` }); return; }
 
-            insertStmt.run(req.params.id, question, opt0, opt1, opt2, opt3, correct_idx, order++);
-            imported.push(rowNum);
+                insertStmt.run(req.params.id, question, opt0, opt1, opt2, opt3, correct_idx, 'multiple_choice', order++);
+                imported.push(rowNum);
+            } else {
+                // Open-ended question: question [, question_type, model_answer]
+                const question = fields[0];
+                const modelAnswer = fields[2] || null;
+                if (!question) { skipped.push({ row: rowNum, reason: 'Question text is empty' }); return; }
+                
+                insertStmt.run(req.params.id, question, null, null, null, null, null, 'open_ended', order++);
+                imported.push(rowNum);
+            }
         });
     });
 
@@ -531,28 +611,44 @@ app.post('/api/submit', auth, (req, res) => {
 
     // Load questions from DB (ordered the same way the client received them)
     const bank = db.prepare(
-        'SELECT id, question, opt0, opt1, opt2, opt3, correct_idx FROM questions WHERE module_id = ? ORDER BY sort_order, id'
+        'SELECT id, question, opt0, opt1, opt2, opt3, correct_idx, question_type FROM questions WHERE module_id = ? ORDER BY sort_order, id'
     ).all(moduleId);
     if (!bank.length) return res.status(400).json({ error: 'Unknown module or no questions found.' });
 
     // Score server-side — client never sends is_correct or correct_option
     const scored = answers.map((a, i) => {
         const question = bank[a.question_index ?? i];
-        const correctOpt = question ? [question.opt0, question.opt1, question.opt2, question.opt3][question.correct_idx] : '';
-        const isCorrect = a.chosen_option !== null && a.chosen_option !== undefined
-            && a.chosen_option === correctOpt;
-        return {
-            question_index: a.question_index ?? i,
-            question_text: question ? question.question : (a.question_text || ''),
-            chosen_option: a.chosen_option ?? null,
-            correct_option: correctOpt,
-            is_correct: isCorrect
-        };
+        const isOpenEnded = question?.question_type === 'open_ended';
+        
+        if (isOpenEnded) {
+            // Open-ended questions: no scoring, just record the response
+            return {
+                question_index: a.question_index ?? i,
+                question_text: question ? question.question : (a.question_text || ''),
+                chosen_option: a.chosen_option ?? null,
+                correct_option: '(Open-ended - no correct answer)',
+                is_correct: false // Open-ended questions don't count toward score
+            };
+        } else {
+            // Multiple choice: score normally
+            const correctOpt = question ? [question.opt0, question.opt1, question.opt2, question.opt3][question.correct_idx] : '';
+            const isCorrect = a.chosen_option !== null && a.chosen_option !== undefined
+                && a.chosen_option === correctOpt;
+            return {
+                question_index: a.question_index ?? i,
+                question_text: question ? question.question : (a.question_text || ''),
+                chosen_option: a.chosen_option ?? null,
+                correct_option: correctOpt,
+                is_correct: isCorrect
+            };
+        }
     });
 
-    const correct = scored.filter(a => a.is_correct).length;
-    const total = scored.length;
-    const pct = Math.round((correct / total) * 100);
+    // Only count multiple choice questions for scoring
+    const mcQuestions = scored.filter(a => a.correct_option !== '(Open-ended - no correct answer)');
+    const correct = mcQuestions.filter(a => a.is_correct).length;
+    const total = mcQuestions.length;
+    const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
 
     const session = db.prepare(
         'INSERT INTO test_sessions (candidate_id, module_id, module_name, score, total, pct) VALUES (?, ?, ?, ?, ?, ?)'
@@ -597,15 +693,19 @@ async function sendResultsEmail({ candidateName, candidateEmail, moduleName, sco
     const resultText = passed ? '✅ PASSED' : '❌ NEEDS REVIEW';
 
     const answersHtml = answers.map((a, i) => {
+        const isOpenEnded = a.correct_option === '(Open-ended - no correct answer)';
         const correct = !!a.is_correct;
-        const icon = correct ? '✅' : (a.chosen_option ? '❌' : '⬜');
+        const icon = isOpenEnded ? '📝' : (correct ? '✅' : (a.chosen_option ? '❌' : '⬜'));
         const chosen = a.chosen_option || '<em style="color:#888">Not answered</em>';
+        const correctAns = isOpenEnded ? '<em style="color:#8b90b0">Open-ended response</em>' : a.correct_option;
+        const answerColor = isOpenEnded ? '#8b90b0' : (correct ? '#22c55e' : '#ef4444');
+        
         return `
         <tr style="border-bottom:1px solid #2e3350;">
           <td style="padding:10px 12px;color:#8b90b0;font-size:13px;vertical-align:top;">${icon} Q${i + 1}</td>
           <td style="padding:10px 12px;font-size:13px;vertical-align:top;">${a.question_text}</td>
-          <td style="padding:10px 12px;font-size:13px;vertical-align:top;color:${correct ? '#22c55e' : '#ef4444'};">${chosen}</td>
-          <td style="padding:10px 12px;font-size:13px;vertical-align:top;color:#22c55e;">${a.correct_option}</td>
+          <td style="padding:10px 12px;font-size:13px;vertical-align:top;color:${answerColor};">${chosen}</td>
+          <td style="padding:10px 12px;font-size:13px;vertical-align:top;color:#22c55e;">${correctAns}</td>
         </tr>`;
     }).join('');
 
@@ -677,25 +777,21 @@ async function sendResultsEmail({ candidateName, candidateEmail, moduleName, sco
 }
 
 // ── GET /api/results/:candidateId ────────────────────────
+// Returns limited session info without scores or answers (candidates shouldn't see results)
 app.get('/api/results/:candidateId', auth, (req, res) => {
     const id = parseInt(req.params.candidateId);
     if (req.candidate.id !== id)
         return res.status(403).json({ error: 'Access denied.' });
 
     const sessions = db.prepare(`
-        SELECT ts.*, c.name as candidate_name
+        SELECT ts.id, ts.module_id, ts.module_name, ts.submitted_at
         FROM test_sessions ts
-        JOIN candidates c ON c.id = ts.candidate_id
         WHERE ts.candidate_id = ?
         ORDER BY ts.submitted_at DESC
     `).all(id);
 
-    const detailed = sessions.map(s => {
-        const ans = db.prepare('SELECT * FROM answers WHERE session_id = ? ORDER BY question_index').all(s.id);
-        return { ...s, answers: ans };
-    });
-
-    res.json(detailed);
+    // Return only basic info - no scores, no answers
+    res.json(sessions);
 });
 
 // ── GET /api/admin/results ───────────────────────────────
@@ -895,9 +991,70 @@ app.get('/api/diagram/submissions/:candidateId', auth, (req, res) => {
     res.json(subs);
 });
 
+// ── GET /api/admin/candidate/:id ──────────────────────────
+// Returns complete details for a single candidate
+app.get('/api/admin/candidate/:id', adminAuth, (req, res) => {
+    const candidateId = parseInt(req.params.id);
+    if (isNaN(candidateId)) return res.status(400).json({ error: 'Invalid candidate ID.' });
+
+    // Candidate info
+    const candidate = db.prepare(`
+        SELECT c.id, c.name, c.email, c.created_at as registered_at,
+               COUNT(DISTINCT ts.id) as session_count,
+               ROUND(AVG(ts.pct), 1) as avg_score
+        FROM candidates c
+        LEFT JOIN test_sessions ts ON ts.candidate_id = c.id
+        WHERE c.id = ?
+        GROUP BY c.id
+    `).get(candidateId);
+
+    if (!candidate) return res.status(404).json({ error: 'Candidate not found.' });
+
+    // Quiz sessions with answers
+    const sessions = db.prepare(`
+        SELECT ts.*
+        FROM test_sessions ts
+        WHERE ts.candidate_id = ?
+        ORDER BY ts.submitted_at DESC
+    `).all(candidateId);
+
+    const sessionIds = sessions.map(s => s.id);
+    let answersBySession = {};
+    if (sessionIds.length > 0) {
+        const placeholders = sessionIds.map(() => '?').join(',');
+        const allAnswers = db.prepare(`
+            SELECT * FROM answers WHERE session_id IN (${placeholders}) ORDER BY question_index
+        `).all(...sessionIds);
+        allAnswers.forEach(a => {
+            if (!answersBySession[a.session_id]) answersBySession[a.session_id] = [];
+            answersBySession[a.session_id].push(a);
+        });
+    }
+
+    const quizSessions = sessions.map(s => ({
+        ...s,
+        answers: answersBySession[s.id] || []
+    }));
+
+    // Diagram submissions
+    const diagramSubmissions = db.prepare(`
+        SELECT ds.id, ds.module_id, ds.module_name, ds.image_data, ds.submitted_at
+        FROM diagram_submissions ds
+        WHERE ds.candidate_id = ?
+        ORDER BY ds.submitted_at DESC
+    `).all(candidateId);
+
+    res.json({
+        ...candidate,
+        quizSessions,
+        diagramSubmissions
+    });
+});
+
 // ── GET /api/admin/report ─────────────────────────────────
 // Full aggregated report: all candidates, quiz sessions, diagram submissions
 app.get('/api/admin/report', adminAuth, (req, res) => {
+
     // All registered candidates
     const candidates = db.prepare(`
         SELECT c.id, c.name, c.email, c.created_at,
