@@ -761,6 +761,7 @@
                     <option value="mid">Mid (60–79%)</option>
                     <option value="low">Low (&lt;60%)</option>
                 </select>
+                <button class="btn-export" id="btnPdfReport" onclick="generatePDFReport()">📥 Full Report PDF</button>
                 <button class="btn-export" onclick="exportCSV()">⬇ Export CSV</button>
             </div>
         </div>
@@ -866,6 +867,13 @@
                     <label class="form-label">Description</label>
                     <input class="form-input" id="nmDesc" placeholder="Short description for candidates" />
                 </div>
+                <div class="form-row">
+                    <label class="form-label">Module Type</label>
+                    <select class="form-input" id="nmType" style="cursor:pointer;">
+                        <option value="quiz">📋 Quiz (multiple choice questions)</option>
+                        <option value="diagram">📐 Diagram (candidate draws a diagram)</option>
+                    </select>
+                </div>
                 <div id="nmError" style="color:var(--danger);font-size:.83rem;margin-bottom:10px;display:none;"></div>
                 <button class="btn-save-q" style="width:100%;justify-content:center;" onclick="submitNewModule()">Create
                     Module</button>
@@ -944,6 +952,34 @@
                             onclick="document.getElementById('addQForm').style.display='none'">Cancel</button>
                     </div>
                 </div>
+                <!-- Diagram Config Panel (shown only for diagram modules) -->
+                <div id="diagramConfigPanel" style="display:none;">
+                    <div
+                        style="background:rgba(79,142,247,.06);border:1px solid rgba(79,142,247,.25);border-radius:10px;padding:18px;margin-bottom:14px;">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+                            <span style="font-size:1.2rem;">📐</span>
+                            <div>
+                                <div style="font-weight:600;font-size:.92rem;">Diagram Module Configuration</div>
+                                <div style="font-size:.78rem;color:var(--muted);">Set the title and prompt candidates
+                                    will see when asked to draw.</div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <label class="form-label">Module Display Name</label>
+                            <input class="form-input" id="dcName" placeholder="e.g. Diagram Design" />
+                        </div>
+                        <div class="form-row">
+                            <label class="form-label">Drawing Prompt <span
+                                    style="color:var(--muted);font-weight:400;">(what candidates are asked to
+                                    draw)</span></label>
+                            <textarea class="form-input" id="dcPrompt" rows="4" style="resize:vertical;line-height:1.5;"
+                                placeholder="e.g. Draw a network layout showing how the main office connects to two branch offices via a VPN tunnel, including firewalls, switches, and end-user devices."></textarea>
+                        </div>
+                        <div id="dcError" style="color:var(--danger);font-size:.83rem;margin-bottom:10px;display:none;">
+                        </div>
+                        <button class="btn-save-q" onclick="saveDiagramConfig()">💾 Save Changes</button>
+                    </div>
+                </div>
             </div>
             <!-- CSV Import Result Panel -->
             <div id="csvResultPanel"
@@ -978,6 +1014,9 @@
 
     <script src="js/app.js"></script>
     <script src="js/excalidraw-bundle.js"></script>
+    <!-- jsPDF + AutoTable for PDF report generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script>
         const token = sessionStorage.getItem('adminToken');
         if (!token) window.location.href = 'admin-login.html';
@@ -1471,7 +1510,7 @@
                         <span style="color:var(--muted);font-size:.72rem;margin-left:auto;">ID: ${m.id}</span>
                     </div>
                     <div class="module-card-actions">
-                        <button class="btn-mod accent" onclick="openQEditor('${m.id}', '${escAttr(m.name)}')">✏️ Edit Questions</button>
+                        <button class="btn-mod accent" onclick="openQEditor('${m.id}', '${escAttr(m.name)}', '${m.module_type || "quiz"}')">✏️ ${m.module_type === 'diagram' ? 'Edit Config' : 'Edit Questions'}</button>
                         <button class="btn-mod" onclick="toggleModule('${m.id}', this)">${m.is_active ? '⏸ Deactivate' : '▶ Activate'}</button>
                         <button class="btn-mod danger" onclick="deleteModule('${m.id}', '${escAttr(m.name)}', this)">🗑</button>
                     </div>`;
@@ -1526,6 +1565,7 @@
             const name = document.getElementById('nmName').value.trim();
             const icon = document.getElementById('nmIcon').value.trim() || '📋';
             const desc = document.getElementById('nmDesc').value.trim();
+            const module_type = document.getElementById('nmType').value;
             const errEl = document.getElementById('nmError');
             if (!id || !name) { errEl.textContent = 'ID and Name are required.'; errEl.style.display = 'block'; return; }
             if (!/^[a-z0-9-]+$/.test(id)) { errEl.textContent = 'ID must be lowercase letters, numbers, and hyphens only.'; errEl.style.display = 'block'; return; }
@@ -1533,7 +1573,7 @@
             const res = await fetch(`${API}/admin/modules`, {
                 method: 'POST',
                 headers: authHeaders(),
-                body: JSON.stringify({ id, name, icon, description: desc })
+                body: JSON.stringify({ id, name, icon, description: desc, module_type })
             });
             const data = await res.json();
             if (!res.ok) { errEl.textContent = data.error || 'Failed to create module.'; errEl.style.display = 'block'; return; }
@@ -1542,14 +1582,67 @@
         }
 
         // ── Question Editor ───────────────────────────────────
-        async function openQEditor(moduleId, moduleName) {
+        let _editingModuleType = 'quiz';
+
+        async function openQEditor(moduleId, moduleName, moduleType) {
             _editingModuleId = moduleId;
-            document.getElementById('qEditorTitle').textContent = `Questions — ${moduleName}`;
+            _editingModuleType = moduleType || 'quiz';
+
+            const isDiagram = _editingModuleType === 'diagram';
+
+            // Update modal header
+            document.getElementById('qEditorTitle').textContent =
+                isDiagram ? `Configure — ${moduleName}` : `Questions — ${moduleName}`;
             document.getElementById('qEditorMeta').textContent = '';
-            document.getElementById('qList').innerHTML = '<span class="spinner"></span>';
+
+            // Show/hide sections based on type
+            document.getElementById('qList').innerHTML = '';
             document.getElementById('addQForm').style.display = 'none';
+            document.getElementById('btnAddQuestion').style.display = isDiagram ? 'none' : '';
+            document.getElementById('diagramConfigPanel').style.display = isDiagram ? 'block' : 'none';
+
+            // Hide CSV import toolbar buttons for diagram modules
+            const csvButtons = document.querySelectorAll('#qEditorOverlay .modal-header button:not(.modal-close)');
+            csvButtons.forEach(b => b.style.display = isDiagram ? 'none' : '');
+
             document.getElementById('qEditorOverlay').classList.add('open');
-            await refreshQList();
+
+            if (isDiagram) {
+                // Load current module data to pre-fill the config form
+                const mod = _allAdminModules.find(m => m.id === moduleId);
+                if (mod) {
+                    document.getElementById('dcName').value = mod.name || '';
+                    document.getElementById('dcPrompt').value = mod.description || '';
+                }
+            } else {
+                document.getElementById('qList').innerHTML = '<span class="spinner"></span>';
+                await refreshQList();
+            }
+        }
+
+        async function saveDiagramConfig() {
+            const name = document.getElementById('dcName').value.trim();
+            const description = document.getElementById('dcPrompt').value.trim();
+            const errEl = document.getElementById('dcError');
+            if (!name) { errEl.textContent = 'Module name is required.'; errEl.style.display = 'block'; return; }
+            errEl.style.display = 'none';
+            const res = await fetch(`${API}/admin/modules/${_editingModuleId}`, {
+                method: 'PUT',
+                headers: authHeaders(),
+                body: JSON.stringify({ name, description })
+            });
+            if (res.ok) {
+                document.getElementById('qEditorTitle').textContent = `Configure — ${name}`;
+                await loadModules();
+                // Flash success
+                const btn = document.querySelector('#diagramConfigPanel .btn-save-q');
+                const orig = btn.textContent;
+                btn.textContent = '✓ Saved!';
+                btn.style.background = 'var(--success)';
+                setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 2000);
+            } else {
+                errEl.textContent = 'Failed to save. Please try again.'; errEl.style.display = 'block';
+            }
         }
 
         function closeQEditor(e) {
@@ -1794,6 +1887,294 @@
             a.download = `questions-template.csv`;
             a.click();
             URL.revokeObjectURL(url);
+        }
+
+        // ── PDF Report Generator ────────────────────────────
+        async function generatePDFReport() {
+            const btn = document.getElementById('btnPdfReport');
+            const origText = btn.innerHTML;
+            btn.innerHTML = '⏳ Generating…';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`${API}/admin/report`, { headers: authHeaders() });
+                if (!res.ok) throw new Error('Failed to fetch report data.');
+                const data = await res.json();
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+                const W = doc.internal.pageSize.getWidth();
+                const MARGIN = 18;
+                const CONTENT_W = W - MARGIN * 2;
+                const BRAND = [30, 90, 220];   // accent blue
+                const DARK = [20, 25, 45];
+                const MID = [90, 100, 130];
+                const SUCCESS = [34, 197, 94];
+                const DANGER = [239, 68, 68];
+                const WARN = [245, 158, 11];
+
+                const fmtDate = iso =>
+                    new Date(iso + (iso.includes('Z') ? '' : 'Z')).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                const scoreCls = pct => pct >= 80 ? SUCCESS : pct >= 60 ? WARN : DANGER;
+
+                // ── COVER PAGE ────────────────────────────
+                // Header gradient bar (simulated with filled rect)
+                doc.setFillColor(...BRAND);
+                doc.rect(0, 0, W, 48, 'F');
+
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(22);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Assessment Portal', MARGIN, 22);
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'normal');
+                doc.text('Full Candidate Report', MARGIN, 32);
+
+                const genDate = fmtDate(data.generatedAt);
+                doc.setFontSize(9);
+                doc.setTextColor(200, 215, 255);
+                doc.text(`Generated: ${genDate}`, W - MARGIN, 22, { align: 'right' });
+
+                // Summary cards row
+                let y = 64;
+                doc.setTextColor(...DARK);
+                doc.setFontSize(13);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Summary', MARGIN, y);
+                y += 8;
+
+                const cards = [
+                    { label: 'Total Candidates', value: data.summary.totalCandidates },
+                    { label: 'Quiz Sessions', value: data.summary.totalSessions },
+                    { label: 'Diagram Submissions', value: data.summary.totalDiagrams },
+                    { label: 'Average Score', value: data.summary.avgScore != null ? `${data.summary.avgScore}%` : '—' }
+                ];
+                const cardW = (CONTENT_W - 12) / 4;
+                cards.forEach((c, i) => {
+                    const cx = MARGIN + i * (cardW + 4);
+                    doc.setFillColor(245, 247, 255);
+                    doc.roundedRect(cx, y, cardW, 24, 3, 3, 'F');
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(14);
+                    doc.setTextColor(...BRAND);
+                    doc.text(String(c.value), cx + cardW / 2, y + 11, { align: 'center' });
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(7.5);
+                    doc.setTextColor(...MID);
+                    doc.text(c.label.toUpperCase(), cx + cardW / 2, y + 19, { align: 'center' });
+                });
+                y += 34;
+
+                // Candidates summary table on cover
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(11);
+                doc.setTextColor(...DARK);
+                doc.text('Candidates Overview', MARGIN, y);
+                y += 4;
+
+                doc.autoTable({
+                    startY: y,
+                    margin: { left: MARGIN, right: MARGIN },
+                    head: [['Name', 'Email', 'Sessions', 'Avg Score']],
+                    body: data.candidates.map(c => [
+                        c.name,
+                        c.email,
+                        c.session_count,
+                        c.avg_score != null ? `${c.avg_score}%` : '—'
+                    ]),
+                    styles: { fontSize: 9, cellPadding: 4, textColor: [30, 35, 60] },
+                    headStyles: { fillColor: BRAND, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8.5 },
+                    alternateRowStyles: { fillColor: [247, 249, 255] },
+                    columnStyles: {
+                        0: { fontStyle: 'bold' },
+                        2: { halign: 'center' },
+                        3: { halign: 'center' }
+                    }
+                });
+
+                // ── PER-CANDIDATE PAGES ───────────────────
+                for (const c of data.candidates) {
+                    doc.addPage();
+                    y = MARGIN;
+
+                    // Candidate header bar
+                    doc.setFillColor(...BRAND);
+                    doc.rect(0, 0, W, 34, 'F');
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(15);
+                    doc.text(c.name, MARGIN, 16);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(9);
+                    doc.setTextColor(200, 215, 255);
+                    doc.text(c.email, MARGIN, 25);
+                    doc.text(`Registered: ${fmtDate(c.registered_at)}`, W - MARGIN, 25, { align: 'right' });
+
+                    y = 46;
+
+                    // ── QUIZ SESSIONS ──
+                    if (c.quizSessions.length > 0) {
+                        doc.setFont('helvetica', 'bold');
+                        doc.setFontSize(11);
+                        doc.setTextColor(...DARK);
+                        doc.text('Quiz Results', MARGIN, y);
+                        y += 5;
+
+                        doc.autoTable({
+                            startY: y,
+                            margin: { left: MARGIN, right: MARGIN },
+                            head: [['Module', 'Score', 'Correct / Total', 'Date']],
+                            body: c.quizSessions.map(s => [
+                                s.module_name,
+                                `${s.pct}%`,
+                                `${s.score} / ${s.total}`,
+                                fmtDate(s.submitted_at)
+                            ]),
+                            styles: { fontSize: 9, cellPadding: 4 },
+                            headStyles: { fillColor: BRAND, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8.5 },
+                            alternateRowStyles: { fillColor: [247, 249, 255] },
+                            columnStyles: {
+                                1: { halign: 'center', fontStyle: 'bold' },
+                                2: { halign: 'center' },
+                                3: { halign: 'center' }
+                            },
+                            didParseCell: (hookData) => {
+                                if (hookData.column.index === 1 && hookData.section === 'body') {
+                                    const pct = parseInt(hookData.cell.text[0]);
+                                    hookData.cell.styles.textColor = scoreCls(pct);
+                                }
+                            }
+                        });
+
+                        y = doc.lastAutoTable.finalY + 12;
+
+                        // Answer breakdown per session (collapsed — module + counts only)
+                        for (const s of c.quizSessions) {
+                            // Check if we need a new page
+                            if (y > 240) { doc.addPage(); y = MARGIN; }
+                            doc.setFont('helvetica', 'bolditalic');
+                            doc.setFontSize(9);
+                            doc.setTextColor(...MID);
+                            doc.text(`${s.module_name} — Answer Breakdown`, MARGIN, y);
+                            y += 4;
+
+                            if (s.answers && s.answers.length > 0) {
+                                doc.autoTable({
+                                    startY: y,
+                                    margin: { left: MARGIN + 4, right: MARGIN },
+                                    head: [['#', 'Question', 'Answer Given', 'Correct Answer', '✓']],
+                                    body: s.answers.map((a, i) => [
+                                        i + 1,
+                                        a.question_text.length > 60 ? a.question_text.slice(0, 57) + '…' : a.question_text,
+                                        a.chosen_option || '(skipped)',
+                                        a.correct_option,
+                                        a.is_correct ? '✓' : '✗'
+                                    ]),
+                                    styles: { fontSize: 7.5, cellPadding: 2.5, overflow: 'linebreak' },
+                                    headStyles: { fillColor: [60, 80, 140], textColor: [255, 255, 255], fontSize: 7.5, fontStyle: 'bold' },
+                                    alternateRowStyles: { fillColor: [250, 251, 255] },
+                                    columnStyles: {
+                                        0: { cellWidth: 8, halign: 'center' },
+                                        1: { cellWidth: 80 },
+                                        2: { cellWidth: 38 },
+                                        3: { cellWidth: 38 },
+                                        4: { cellWidth: 10, halign: 'center', fontStyle: 'bold' }
+                                    },
+                                    didParseCell: (hookData) => {
+                                        if (hookData.column.index === 4 && hookData.section === 'body') {
+                                            hookData.cell.styles.textColor =
+                                                hookData.cell.text[0] === '✓' ? SUCCESS : DANGER;
+                                        }
+                                    }
+                                });
+                                y = doc.lastAutoTable.finalY + 10;
+                            }
+                        }
+                    } else {
+                        doc.setFont('helvetica', 'italic');
+                        doc.setFontSize(9.5);
+                        doc.setTextColor(...MID);
+                        doc.text('No quiz sessions on record.', MARGIN, y);
+                        y += 14;
+                    }
+
+                    // ── DIAGRAM SUBMISSIONS ──
+                    if (c.diagramSubmissions.length > 0) {
+                        for (const d of c.diagramSubmissions) {
+                            if (y > 210) { doc.addPage(); y = MARGIN; }
+
+                            // Section header
+                            doc.setFillColor(245, 247, 255);
+                            doc.roundedRect(MARGIN, y, CONTENT_W, 10, 2, 2, 'F');
+                            doc.setFont('helvetica', 'bold');
+                            doc.setFontSize(10);
+                            doc.setTextColor(...DARK);
+                            doc.text(`📐  ${d.module_name}`, MARGIN + 4, y + 7);
+                            doc.setFont('helvetica', 'normal');
+                            doc.setFontSize(8.5);
+                            doc.setTextColor(...MID);
+                            doc.text(`Submitted: ${fmtDate(d.submitted_at)}`, W - MARGIN - 4, y + 7, { align: 'right' });
+                            y += 14;
+
+                            if (d.image_data) {
+                                // Embed the base64 PNG thumbnail
+                                try {
+                                    const imgMaxH = 90; // max height in mm
+                                    const imgW = CONTENT_W;
+                                    // Create a temp image to get aspect ratio
+                                    await new Promise(resolve => {
+                                        const img = new Image();
+                                        img.onload = () => {
+                                            const aspect = img.naturalWidth / img.naturalHeight;
+                                            const imgH = Math.min(imgMaxH, imgW / aspect);
+                                            if (y + imgH > 280) { doc.addPage(); y = MARGIN; }
+                                            doc.addImage(d.image_data, 'PNG', MARGIN, y, imgW, imgH);
+                                            y += imgH + 10;
+                                            resolve();
+                                        };
+                                        img.onerror = () => { resolve(); }; // skip on error
+                                        img.src = d.image_data;
+                                    });
+                                } catch {
+                                    doc.setFont('helvetica', 'italic');
+                                    doc.setFontSize(8.5);
+                                    doc.setTextColor(...MID);
+                                    doc.text('(Diagram image could not be rendered.)', MARGIN, y);
+                                    y += 10;
+                                }
+                            } else {
+                                doc.setFont('helvetica', 'italic');
+                                doc.setFontSize(8.5);
+                                doc.setTextColor(...MID);
+                                doc.text('No image captured for this submission.', MARGIN, y);
+                                y += 10;
+                            }
+                        }
+                    }
+
+                    // Page number footer on each page
+                    const totalPages = doc.internal.pages.length - 1;
+                    for (let p = 1; p <= totalPages; p++) {
+                        doc.setPage(p);
+                        doc.setFont('helvetica', 'normal');
+                        doc.setFontSize(7.5);
+                        doc.setTextColor(...MID);
+                        doc.text(`Assessment Portal Report  ·  ${genDate}`, MARGIN, 292);
+                        doc.text(`Page ${p} of ${totalPages}`, W - MARGIN, 292, { align: 'right' });
+                    }
+                }
+
+                // Download
+                const dateStr = new Date().toISOString().slice(0, 10);
+                doc.save(`assessment-report-${dateStr}.pdf`);
+
+            } catch (err) {
+                alert('Failed to generate report: ' + err.message);
+            } finally {
+                btn.innerHTML = origText;
+                btn.disabled = false;
+            }
         }
     </script>
 </body>

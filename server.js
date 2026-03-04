@@ -66,7 +66,7 @@ const SEED_DATA = {
         { id: 'networking', name: 'Networking Fundamentals', icon: '🌐', description: 'TCP/IP, subnetting, routing protocols, VLANs, and network troubleshooting.', url: null, sort_order: 2, is_active: 0 },
         { id: 'security', name: 'Security & Compliance', icon: '🔒', description: 'Cybersecurity principles, threat vectors, access control, and compliance frameworks.', url: null, sort_order: 3, is_active: 0 },
         { id: 'powershell', name: 'PowerShell & Scripting', icon: '⚡', description: 'PowerShell cmdlets, scripting best practices, and AD automation.', url: null, sort_order: 4, is_active: 0 },
-        { id: 'diagram-design', name: 'Diagram Design', icon: '📐', description: 'Draw a network layout, application architecture, or infrastructure diagram using the interactive whiteboard.', url: 'diagram.html?module=diagram-design', sort_order: 5, is_active: 1 },
+        { id: 'diagram-design', name: 'Diagram Design', icon: '📐', description: 'Draw a network layout, application architecture, or infrastructure diagram using the interactive whiteboard.', url: 'diagram.html?module=diagram-design', sort_order: 5, is_active: 1, module_type: 'diagram' },
     ],
     questions: {
         'ad-management': [
@@ -119,8 +119,8 @@ const SEED_DATA = {
 (function seedModules() {
     // Always ensure all seed modules exist (INSERT OR IGNORE preserves existing data)
     const insertModule = db.prepare(
-        `INSERT OR IGNORE INTO modules (id, name, icon, description, url, is_active, sort_order)
-         VALUES (@id, @name, @icon, @description, @url, @is_active, @sort_order)`
+        `INSERT OR IGNORE INTO modules (id, name, icon, description, url, module_type, is_active, sort_order)
+         VALUES (@id, @name, @icon, @description, @url, @module_type, @is_active, @sort_order)`
     );
     const insertQuestion = db.prepare(
         `INSERT INTO questions (module_id, question, opt0, opt1, opt2, opt3, correct_idx, sort_order)
@@ -129,7 +129,7 @@ const SEED_DATA = {
     const seedTx = db.transaction(() => {
         let added = 0;
         for (const m of SEED_DATA.modules) {
-            const result = insertModule.run({ is_active: 1, ...m });
+            const result = insertModule.run({ module_type: 'quiz', is_active: 1, ...m });
             if (result.changes > 0) added++;
         }
         // Only seed questions for modules that had zero questions
@@ -266,7 +266,7 @@ app.get('/api/admin/verify', adminAuth, (req, res) => {
 // ── GET /api/modules ─────────────────────────────────────
 app.get('/api/modules', auth, (req, res) => {
     const mods = db.prepare(
-        'SELECT id, name, icon, description, url, is_active FROM modules WHERE is_active = 1 ORDER BY sort_order, id'
+        'SELECT id, name, icon, description, url, module_type, is_active FROM modules WHERE is_active = 1 ORDER BY sort_order, id'
     ).all();
     const grants = db.prepare(
         'SELECT module_id FROM retake_grants WHERE candidate_id = ?'
@@ -283,8 +283,11 @@ app.get('/api/modules', auth, (req, res) => {
         icon: m.icon,
         desc: m.description,
         url: m.url || null,
+        module_type: m.module_type || 'quiz',
         questions: countMap[m.id] || 0,
-        ready: (countMap[m.id] || 0) > 0,
+        // Diagram modules are always ready (they have no questions by design).
+        // Quiz modules need at least 1 question to be ready.
+        ready: m.module_type === 'diagram' ? true : (countMap[m.id] || 0) > 0,
         retakeGranted: grantedSet.has(m.id)
     })));
 });
@@ -326,7 +329,7 @@ app.get('/api/admin/modules', adminAuth, (req, res) => {
 
 // ── POST /api/admin/modules ───────────────────────────────
 app.post('/api/admin/modules', adminAuth, (req, res) => {
-    const { id, name, icon, description, url, sort_order } = req.body;
+    const { id, name, icon, description, url, sort_order, module_type } = req.body;
     if (!id || !name)
         return res.status(400).json({ error: 'id and name are required.' });
     if (!/^[a-z0-9-]+$/.test(id))
@@ -334,10 +337,11 @@ app.post('/api/admin/modules', adminAuth, (req, res) => {
     const existing = db.prepare('SELECT id FROM modules WHERE id = ?').get(id);
     if (existing)
         return res.status(409).json({ error: 'A module with that ID already exists.' });
+    const type = (module_type === 'diagram') ? 'diagram' : 'quiz';
     db.prepare(
-        `INSERT INTO modules (id, name, icon, description, url, is_active, sort_order)
-         VALUES (?, ?, ?, ?, ?, 1, ?)`
-    ).run(id, name.trim(), icon || '📋', (description || '').trim(), url || null, sort_order ?? 99);
+        `INSERT INTO modules (id, name, icon, description, url, module_type, is_active, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?, 1, ?)`
+    ).run(id, name.trim(), icon || '📋', (description || '').trim(), url || null, type, sort_order ?? 99);
     res.json({ ok: true, id });
 });
 
@@ -345,14 +349,18 @@ app.post('/api/admin/modules', adminAuth, (req, res) => {
 app.put('/api/admin/modules/:id', adminAuth, (req, res) => {
     const mod = db.prepare('SELECT * FROM modules WHERE id = ?').get(req.params.id);
     if (!mod) return res.status(404).json({ error: 'Module not found.' });
-    const { name, icon, description, url, sort_order } = req.body;
+    const { name, icon, description, url, sort_order, module_type } = req.body;
+    const type = module_type !== undefined
+        ? ((module_type === 'diagram') ? 'diagram' : 'quiz')
+        : mod.module_type;
     db.prepare(
-        `UPDATE modules SET name = ?, icon = ?, description = ?, url = ?, sort_order = ? WHERE id = ?`
+        `UPDATE modules SET name = ?, icon = ?, description = ?, url = ?, module_type = ?, sort_order = ? WHERE id = ?`
     ).run(
         (name ?? mod.name).trim(),
         icon ?? mod.icon,
         description !== undefined ? description.trim() : mod.description,
         url !== undefined ? (url || null) : mod.url,
+        type,
         sort_order !== undefined ? sort_order : mod.sort_order,
         req.params.id
     );
@@ -885,6 +893,107 @@ app.get('/api/diagram/submissions/:candidateId', auth, (req, res) => {
         'SELECT id, module_id, module_name, submitted_at FROM diagram_submissions WHERE candidate_id = ? ORDER BY submitted_at DESC'
     ).all(id);
     res.json(subs);
+});
+
+// ── GET /api/admin/report ─────────────────────────────────
+// Full aggregated report: all candidates, quiz sessions, diagram submissions
+app.get('/api/admin/report', adminAuth, (req, res) => {
+    // All registered candidates
+    const candidates = db.prepare(`
+        SELECT c.id, c.name, c.email, c.created_at,
+               COUNT(DISTINCT ts.id) as session_count,
+               ROUND(AVG(ts.pct), 1) as avg_score
+        FROM candidates c
+        LEFT JOIN test_sessions ts ON ts.candidate_id = c.id
+        GROUP BY c.id
+        ORDER BY c.name ASC
+    `).all();
+
+    // All quiz sessions with answers (flat, then grouped per candidate)
+    const allSessions = db.prepare(`
+        SELECT ts.*, c.name as candidate_name, c.email as candidate_email
+        FROM test_sessions ts
+        JOIN candidates c ON c.id = ts.candidate_id
+        ORDER BY ts.candidate_id, ts.submitted_at DESC
+    `).all();
+
+    const allAnswers = db.prepare(
+        'SELECT * FROM answers ORDER BY session_id, question_index'
+    ).all();
+    const answersBySession = {};
+    allAnswers.forEach(a => {
+        if (!answersBySession[a.session_id]) answersBySession[a.session_id] = [];
+        answersBySession[a.session_id].push(a);
+    });
+
+    // All diagram submissions (including image_data for PDF embedding)
+    const allDiagrams = db.prepare(`
+        SELECT ds.id, ds.candidate_id, ds.module_id, ds.module_name,
+               ds.image_data, ds.submitted_at,
+               c.name as candidate_name, c.email as candidate_email
+        FROM diagram_submissions ds
+        JOIN candidates c ON c.id = ds.candidate_id
+        ORDER BY ds.candidate_id, ds.submitted_at DESC
+    `).all();
+
+    // Overall summary stats
+    const allPcts = allSessions.map(s => s.pct).filter(p => p != null);
+    const avgScore = allPcts.length
+        ? Math.round(allPcts.reduce((a, b) => a + b, 0) / allPcts.length)
+        : null;
+
+    // Build per-candidate report objects
+    const report = candidates.map(c => {
+        const quizSessions = allSessions
+            .filter(s => s.candidate_id === c.id)
+            .map(s => ({
+                id: s.id,
+                module_id: s.module_id,
+                module_name: s.module_name,
+                score: s.score,
+                total: s.total,
+                pct: s.pct,
+                submitted_at: s.submitted_at,
+                answers: (answersBySession[s.id] || []).map(a => ({
+                    question_text: a.question_text,
+                    chosen_option: a.chosen_option,
+                    correct_option: a.correct_option,
+                    is_correct: !!a.is_correct
+                }))
+            }));
+
+        const diagramSubmissions = allDiagrams
+            .filter(d => d.candidate_id === c.id)
+            .map(d => ({
+                id: d.id,
+                module_id: d.module_id,
+                module_name: d.module_name,
+                submitted_at: d.submitted_at,
+                image_data: d.image_data || null
+            }));
+
+        return {
+            id: c.id,
+            name: c.name,
+            email: c.email,
+            registered_at: c.created_at,
+            session_count: c.session_count,
+            avg_score: c.avg_score,
+            quizSessions,
+            diagramSubmissions
+        };
+    });
+
+    res.json({
+        generatedAt: new Date().toISOString(),
+        summary: {
+            totalCandidates: candidates.length,
+            totalSessions: allSessions.length,
+            totalDiagrams: allDiagrams.length,
+            avgScore
+        },
+        candidates: report
+    });
 });
 
 // ── Start ────────────────────────────────────────────────

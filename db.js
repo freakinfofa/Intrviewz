@@ -56,6 +56,7 @@ db.exec(`
     icon        TEXT    NOT NULL DEFAULT '📋',
     description TEXT    NOT NULL DEFAULT '',
     url         TEXT,
+    module_type TEXT    NOT NULL DEFAULT 'quiz',
     is_active   INTEGER NOT NULL DEFAULT 1,
     sort_order  INTEGER NOT NULL DEFAULT 0,
     created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
@@ -84,5 +85,14 @@ db.exec(`
     submitted_at  TEXT    NOT NULL DEFAULT (datetime('now'))
   );
 `);
+
+// ── Migrations ──────────────────────────────────────────
+// Safe to run on every boot — SQLite ignores duplicate column errors
+try {
+    db.exec(`ALTER TABLE modules ADD COLUMN module_type TEXT NOT NULL DEFAULT 'quiz'`);
+    // Ensure the diagram-design module is flagged correctly
+    db.prepare(`UPDATE modules SET module_type = 'diagram' WHERE id = 'diagram-design'`).run();
+    console.log('🔧  Migration: added module_type column to modules table.');
+} catch { /* column already exists — no-op */ }
 
 module.exports = db;
