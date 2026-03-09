@@ -70,7 +70,7 @@
     <script src="js/app.js"></script>
     <script>
         // Redirect if already logged in
-        if (sessionStorage.getItem('token')) {
+        if (sessionStorage.getItem('candidateId')) {
             window.location.href = 'dashboard.html';
         }
 
@@ -98,7 +98,6 @@
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error);
-                sessionStorage.setItem('token', data.token);
                 sessionStorage.setItem('candidateName', data.name);
                 sessionStorage.setItem('candidateId', data.id);
                 window.location.href = 'dashboard.html';
@@ -125,7 +124,6 @@
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error);
-                sessionStorage.setItem('token', data.token);
                 sessionStorage.setItem('candidateName', data.name);
                 sessionStorage.setItem('candidateId', data.id);
                 window.location.href = 'dashboard.html';

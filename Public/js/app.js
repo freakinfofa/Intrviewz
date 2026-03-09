@@ -22,22 +22,22 @@ function setLoading(btnId, loading, originalText) {
 }
 
 function authHeaders() {
-    const token = sessionStorage.getItem('token');
-    return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+    return { 'Content-Type': 'application/json' };
 }
 
 function adminAuthHeaders() {
-    const token = sessionStorage.getItem('adminToken');
-    return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+    return { 'Content-Type': 'application/json' };
 }
 
-function logout() {
+async function logout() {
+    await fetch('/api/logout', { method: 'POST' });
     sessionStorage.clear();
     window.location.href = 'index.html';
 }
 
-function adminLogout() {
-    sessionStorage.removeItem('adminToken');
+async function adminLogout() {
+    await fetch('/api/admin/logout', { method: 'POST' });
+    sessionStorage.removeItem('adminLoggedIn');
     window.location.href = 'admin-login.html';
 }
 

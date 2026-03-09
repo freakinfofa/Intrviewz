@@ -388,10 +388,9 @@
     </script>
     <script>
         // ── Auth check ──
-        const token = sessionStorage.getItem('token');
         const candidateId = sessionStorage.getItem('candidateId');
         const candidateName = sessionStorage.getItem('candidateName');
-        if (!token) window.location.href = 'index.html';
+        if (!candidateId) window.location.href = 'index.html';
         document.getElementById('navName').textContent = candidateName || '—';
 
         // ── Parse module from URL ──

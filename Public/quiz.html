@@ -419,11 +419,10 @@
 
     <script>
         const API = '/api';
-        const token = sessionStorage.getItem('token');
         const candidateId = sessionStorage.getItem('candidateId') || 'guest';
         const candidateName = sessionStorage.getItem('candidateName') || 'Candidate';
 
-        if (!token) window.location.href = 'index.html';
+        if (!candidateId || candidateId === 'guest') window.location.href = 'index.html';
 
         // Read module ID from ?module=<id> query param
         const params = new URLSearchParams(window.location.search);
@@ -447,9 +446,9 @@
             try {
                 // Fetch questions for this module
                 const res = await fetch(`${API}/questions/${MODULE_ID}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: { 'Content-Type': 'application/json' }
                 });
-                if (!res.ok) throw new Error('Failed to load');
+                if (!res.ok) { window.location.href = 'index.html'; return; }
                 questions = await res.json();
 
                 if (!questions.length) {
@@ -460,7 +459,7 @@
 
                 // Try to get the module name from the modules list
                 try {
-                    const mr = await fetch(`${API}/modules`, { headers: { 'Authorization': `Bearer ${token}` } });
+                    const mr = await fetch(`${API}/modules`, { headers: { 'Content-Type': 'application/json' } });
                     const mods = await mr.json();
                     const mod = mods.find(m => m.id === MODULE_ID);
                     if (mod) {
@@ -620,7 +619,7 @@
             try {
                 const res = await fetch(`${API}/submit`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ moduleId: MODULE_ID, moduleName: MODULE_NAME, answers })
                 });
                 if (!res.ok) throw new Error('Server error');

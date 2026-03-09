@@ -42,7 +42,7 @@
     <script src="js/app.js"></script>
     <script>
         // Already logged in as admin?
-        if (sessionStorage.getItem('adminToken')) {
+        if (sessionStorage.getItem('adminLoggedIn')) {
             window.location.href = 'admin.html';
         }
 
@@ -62,7 +62,7 @@
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || 'Login failed');
-                sessionStorage.setItem('adminToken', data.token);
+                sessionStorage.setItem('adminLoggedIn', '1');
                 window.location.href = 'admin.html';
             } catch (err) {
                 showAlert(err.message);

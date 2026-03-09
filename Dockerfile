@@ -8,7 +8,7 @@ RUN npm install
 
 # Copy source needed for the Excalidraw build
 COPY build-excalidraw.js excalidraw-app.jsx ./
-COPY public ./public
+COPY Public ./Public
 
 # Bundle Excalidraw into a static JS file
 RUN node build-excalidraw.js
@@ -29,7 +29,7 @@ RUN npm install --omit=dev && rm -rf /root/.npm
 COPY --chown=node:node . .
 
 # Copy the built Excalidraw bundle from builder stage
-COPY --from=builder /app/public/js/excalidraw-bundle.js ./public/js/excalidraw-bundle.js
+COPY --from=builder /app/Public/js/excalidraw-bundle.js ./Public/js/excalidraw-bundle.js
 
 # Run as the built-in non-root 'node' user
 USER node

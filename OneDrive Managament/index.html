@@ -396,12 +396,11 @@
         const API = '/api';
         const MODULE_ID = 'onedrive-management';
         const MODULE_NAME = 'OneDrive Management';
-        const token = sessionStorage.getItem('token');
         const candidateId = sessionStorage.getItem('candidateId') || 'guest';
         const candidateName = sessionStorage.getItem('candidateName') || 'Candidate';
         const SAVE_KEY = `progress_${candidateId}_${MODULE_ID}`;
 
-        if (!token) window.location.href = '../index.html';
+        if (!candidateId || candidateId === 'guest') window.location.href = '../index.html';
 
         let questions = [];
         let userAnswers = [];
@@ -412,7 +411,7 @@
         async function init() {
             try {
                 const res = await fetch(`${API}/questions/${MODULE_ID}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: { 'Content-Type': 'application/json' }
                 });
                 if (!res.ok) throw new Error('Failed to load');
                 questions = await res.json();
@@ -528,7 +527,7 @@
             try {
                 const res = await fetch(`${API}/submit`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ moduleId: MODULE_ID, moduleName: MODULE_NAME, answers })
                 });
                 if (!res.ok) throw new Error('Server error');

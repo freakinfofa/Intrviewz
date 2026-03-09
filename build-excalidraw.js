@@ -5,7 +5,7 @@ const path = require('path');
 esbuild.build({
     entryPoints: [path.join(__dirname, 'excalidraw-app.jsx')],
     bundle: true,
-    outfile: path.join(__dirname, 'public', 'js', 'excalidraw-bundle.js'),
+    outfile: path.join(__dirname, 'Public', 'js', 'excalidraw-bundle.js'),
     format: 'iife',
     platform: 'browser',
     minify: false, // Keep unminified for debugging

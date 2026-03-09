@@ -1,7 +1,8 @@
 require('dotenv').config();
 
 const express = require('express');
-const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const helmet = require('helmet');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const path = require('path');
@@ -35,18 +36,23 @@ if (SG_KEY && SG_KEY !== 'SG.your-api-key-here') {
     console.log('⚠️   SendGrid not configured – email notifications disabled.');
 }
 
-app.use(cors());
+app.use(helmet({ contentSecurityPolicy: false }));
+app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'Public')));
 
 // ── Serve module directories (legacy standalone quiz pages) ──
 // Express mount paths don't reliably match URL-encoded spaces,
 // so we use explicit route handlers instead.
 app.get('/AD%20Management/:file', (req, res) => {
-    res.sendFile(path.join(__dirname, 'AD Management', req.params.file));
+    const file = path.basename(req.params.file);
+    if (!file || file.startsWith('.')) return res.status(400).end();
+    res.sendFile(path.join(__dirname, 'AD Management', file));
 });
 app.get('/OneDrive%20Managament/:file', (req, res) => {
-    res.sendFile(path.join(__dirname, 'OneDrive Managament', req.params.file));
+    const file = path.basename(req.params.file);
+    if (!file || file.startsWith('.')) return res.status(400).end();
+    res.sendFile(path.join(__dirname, 'OneDrive Managament', file));
 });
 
 // ── Rate limiter for auth endpoints ──────────────────────
@@ -63,8 +69,8 @@ const SEED_DATA = {
     modules: [
         { id: 'ad-management', name: 'Active Directory Management', icon: '🗂️', description: 'AD concepts, FSMO roles, replication, group scopes, DNS integration, and common AD tools.', url: 'AD Management/index.html', sort_order: 0 },
         { id: 'onedrive-management', name: 'OneDrive Management', icon: '☁️', description: 'OneDrive administration, sharing permissions, DLP policies, storage limits, and Microsoft 365 integration.', url: 'OneDrive Managament/index.html', sort_order: 1 },
-        { id: 'networking', name: 'Networking Fundamentals', icon: '🌐', description: 'TCP/IP, subnetting, routing protocols, VLANs, and network troubleshooting.', url: null, sort_order: 2, is_active: 0 },
-        { id: 'security', name: 'Security & Compliance', icon: '🔒', description: 'Cybersecurity principles, threat vectors, access control, and compliance frameworks.', url: null, sort_order: 3, is_active: 0 },
+        { id: 'networking', name: 'Networking Fundamentals', icon: '🌐', description: 'TCP/IP, subnetting, routing protocols, VLANs, and network troubleshooting.', url: null, sort_order: 2, is_active: 1 },
+        { id: 'security', name: 'Security & Compliance', icon: '🔒', description: 'Cybersecurity principles, threat vectors, access control, and compliance frameworks.', url: null, sort_order: 3, is_active: 1 },
         { id: 'powershell', name: 'PowerShell & Scripting', icon: '⚡', description: 'PowerShell cmdlets, scripting best practices, and AD automation.', url: null, sort_order: 4, is_active: 0 },
         { id: 'diagram-design', name: 'Diagram Design', icon: '📐', description: 'Draw a network layout, application architecture, or infrastructure diagram using the interactive whiteboard.', url: 'diagram.html?module=diagram-design', sort_order: 5, is_active: 1, module_type: 'diagram' },
     ],
@@ -112,6 +118,50 @@ const SEED_DATA = {
             { q: "What happens to your files in OneDrive when you delete your Microsoft account?", opts: ["The files are saved on your device", "The files are moved to a different cloud storage", "The files are emailed to you", "The files are deleted"], ans: 3 },
             { q: "You are a OneDrive administrator and you need to track the activity of a specific user. What feature should you use?", opts: ["OneDrive audit log", "OneDrive settings", "OneDrive Recycle Bin", "OneDrive file version history"], ans: 0 },
             { q: "Which Microsoft Office application can be directly integrated with OneDrive?", opts: ["MS Paint", "Notepad", "Microsoft Word", "Windows Media Player"], ans: 2 }
+        ],
+        'networking': [
+            { q: "What does TCP stand for?", opts: ["Transport Control Protocol", "Transmission Control Protocol", "Transfer Communication Protocol", "Terminal Control Protocol"], ans: 1 },
+            { q: "What is the purpose of a subnet mask?", opts: ["To encrypt network traffic", "To identify which portion of an IP address is the network and which is the host", "To assign IP addresses automatically", "To route traffic between networks"], ans: 1 },
+            { q: "Which OSI model layer is responsible for routing packets between networks?", opts: ["Layer 2 – Data Link", "Layer 3 – Network", "Layer 4 – Transport", "Layer 5 – Session"], ans: 1 },
+            { q: "What is the default subnet mask for a Class C network?", opts: ["255.0.0.0", "255.255.0.0", "255.255.255.0", "255.255.255.128"], ans: 2 },
+            { q: "Which protocol automatically assigns IP addresses to devices on a network?", opts: ["DNS", "DHCP", "FTP", "SNMP"], ans: 1 },
+            { q: "What is the purpose of ARP (Address Resolution Protocol)?", opts: ["To translate domain names to IP addresses", "To map IP addresses to MAC addresses", "To route packets between networks", "To encrypt data in transit"], ans: 1 },
+            { q: "Which of the following is a valid RFC 1918 private IP address range?", opts: ["172.16.0.0 – 172.31.255.255", "192.169.0.0 – 192.169.255.255", "10.255.0.0 – 11.0.0.0", "8.8.0.0 – 8.8.255.255"], ans: 0 },
+            { q: "What is the purpose of a VLAN?", opts: ["To increase available bandwidth", "To segment a physical network into logical isolated networks", "To provide wireless connectivity", "To encrypt network traffic"], ans: 1 },
+            { q: "What port does HTTPS use by default?", opts: ["80", "443", "8080", "8443"], ans: 1 },
+            { q: "What is the key difference between TCP and UDP?", opts: ["TCP is faster; UDP guarantees delivery", "TCP guarantees reliable delivery; UDP is connectionless and lower overhead", "UDP is used for web traffic; TCP is used for streaming", "They are functionally identical"], ans: 1 },
+            { q: "What does DNS stand for?", opts: ["Dynamic Network Service", "Domain Name System", "Distributed Name Server", "Data Network Standard"], ans: 1 },
+            { q: "What is the purpose of NAT (Network Address Translation)?", opts: ["To assign static IP addresses to servers", "To translate private IP addresses to a public IP for internet access", "To filter malicious network packets", "To monitor bandwidth usage"], ans: 1 },
+            { q: "Which routing protocol is used to exchange routing information between autonomous systems on the internet?", opts: ["OSPF", "RIP", "BGP", "EIGRP"], ans: 2 },
+            { q: "What does CIDR notation /24 represent as a subnet mask?", opts: ["255.0.0.0", "255.255.0.0", "255.255.255.0", "255.255.255.128"], ans: 2 },
+            { q: "What does the ping command test?", opts: ["The route packets take to a destination", "Connectivity to a host and round-trip latency", "The current routing table", "Open ports on a remote host"], ans: 1 },
+            { q: "What is a MAC address?", opts: ["A 32-bit logical address assigned by administrators", "A 48-bit hardware address burned into a network interface card", "An address used for routing across the internet", "A temporary address assigned by DHCP"], ans: 1 },
+            { q: "What is the function of the Spanning Tree Protocol (STP)?", opts: ["To encrypt traffic between switches", "To prevent switching loops in Ethernet networks", "To assign IP addresses to VLANs", "To route packets between subnets"], ans: 1 },
+            { q: "Which command displays the IP routing table on a Windows system?", opts: ["ipconfig /all", "arp -a", "nslookup", "route print"], ans: 3 },
+            { q: "What is QoS (Quality of Service) in networking?", opts: ["A security protocol for encrypting data", "A mechanism to prioritise certain types of network traffic", "A protocol for dynamically assigning IP addresses", "A method for creating VLANs"], ans: 1 },
+            { q: "What is the key difference between a hub and a switch?", opts: ["A hub operates at Layer 3; a switch at Layer 2", "A hub broadcasts to all ports; a switch forwards frames only to the destination MAC address port", "A switch broadcasts to all ports; a hub forwards to a specific port", "They are functionally identical devices"], ans: 1 }
+        ],
+        'security': [
+            { q: "What does the CIA triad stand for in cybersecurity?", opts: ["Confidentiality, Integrity, Availability", "Classification, Identification, Authentication", "Control, Investigation, Assessment", "Cyber, Internet, Application"], ans: 0 },
+            { q: "What is phishing?", opts: ["A network scanning technique", "A social engineering attack that tricks users into revealing sensitive information", "A method for encrypting data at rest", "A vulnerability in web application authentication"], ans: 1 },
+            { q: "What is multi-factor authentication (MFA)?", opts: ["Using a very long and complex password", "Requiring two or more distinct verification factors to authenticate a user", "A method for storing passwords in encrypted form", "A firewall rule that blocks unauthorised access"], ans: 1 },
+            { q: "What does the principle of least privilege mean?", opts: ["Granting users only the permissions they need to perform their job", "Giving administrators unrestricted access to all systems", "Restricting all users from accessing sensitive data entirely", "Applying the minimum encryption standard that satisfies requirements"], ans: 0 },
+            { q: "What is ransomware?", opts: ["Spyware that monitors user activity without consent", "Malware that encrypts a victim's files and demands payment for decryption", "A denial-of-service attack that floods a target with traffic", "A vulnerability in web application session handling"], ans: 1 },
+            { q: "What is the primary purpose of a firewall?", opts: ["To scan endpoints for viruses", "To monitor and control incoming and outgoing network traffic based on defined rules", "To encrypt data transmitted across a network", "To assign IP addresses to devices on the network"], ans: 1 },
+            { q: "What is an SQL injection attack?", opts: ["A DDoS attack targeting database servers", "Inserting malicious SQL code into an input field to manipulate or extract database data", "Encrypting a database without authorisation", "Brute-forcing database login credentials"], ans: 1 },
+            { q: "What is the primary purpose of GDPR?", opts: ["To regulate financial reporting standards", "To protect the personal data and privacy of individuals in the EU", "To govern international trade agreements", "To standardise cybersecurity practices globally"], ans: 1 },
+            { q: "What is a zero-day vulnerability?", opts: ["A flaw disclosed and patched but not yet deployed", "A security flaw unknown to the vendor with no available patch", "A vulnerability found on the release day of software", "A low-severity bug with no known exploit"], ans: 1 },
+            { q: "What is the difference between symmetric and asymmetric encryption?", opts: ["Symmetric uses two keys; asymmetric uses one", "Symmetric uses one shared key for both encryption and decryption; asymmetric uses a public/private key pair", "Symmetric is slower than asymmetric encryption", "They are equivalent in all practical scenarios"], ans: 1 },
+            { q: "What is a VPN primarily used for?", opts: ["To increase internet connection speed", "To create an encrypted tunnel for secure communication over untrusted networks", "To block access to malicious websites", "To scan a network for open vulnerabilities"], ans: 1 },
+            { q: "What protection does HTTPS add compared to HTTP?", opts: ["It prevents all categories of cyberattack", "It encrypts data in transit, protecting it from eavesdropping and tampering", "It increases web page load speed", "It prevents server-side code vulnerabilities"], ans: 1 },
+            { q: "What is social engineering in cybersecurity?", opts: ["Recruiting staff to build a security team", "Manipulating people into divulging confidential information or performing actions that compromise security", "Implementing security policies across an organisation", "Designing inherently secure software architectures"], ans: 1 },
+            { q: "What is a penetration test?", opts: ["Testing the physical security controls of a building", "An authorised simulated cyberattack used to evaluate the security of a system", "An automated port scan of a network", "A review of written security policies and procedures"], ans: 1 },
+            { q: "What is the purpose of encrypting data at rest?", opts: ["To speed up data retrieval from storage", "To protect stored data from unauthorised access if physical media is compromised", "To reduce the storage space data occupies", "To comply with network packet transmission standards"], ans: 1 },
+            { q: "What is an Intrusion Detection System (IDS)?", opts: ["A system that blocks all inbound network traffic by default", "A system that monitors network or host activity for signs of malicious behaviour and raises alerts", "A tool for centralised management of user passwords", "A next-generation firewall that filters web traffic"], ans: 1 },
+            { q: "Which compliance framework specifically governs security standards in the payment card industry?", opts: ["HIPAA", "SOC 2", "PCI DSS", "ISO 27001"], ans: 2 },
+            { q: "What is the purpose of an access control list (ACL)?", opts: ["To maintain a directory of all users in an organisation", "To define which users or systems are permitted to access specific resources", "To log all failed login attempts", "To push firewall rules to all network devices simultaneously"], ans: 1 },
+            { q: "What is a DDoS (Distributed Denial of Service) attack?", opts: ["An attack that encrypts files on a target system for ransom", "An attack that overwhelms a target with traffic from many sources to disrupt availability", "A man-in-the-middle attack that intercepts communications", "An attack that exploits a specific software vulnerability to gain access"], ans: 1 },
+            { q: "What is the purpose of a security audit?", opts: ["To deploy security software updates across all systems", "To systematically evaluate an organisation's security controls against defined standards or policies", "To monitor real-time network traffic for anomalies", "To deliver security awareness training to employees"], ans: 1 }
         ]
     }
 };
@@ -147,6 +197,8 @@ const SEED_DATA = {
                     sort_order: i
                 });
             });
+            // Activate the module now that it has questions (handles pre-existing inactive rows)
+            db.prepare('UPDATE modules SET is_active = 1 WHERE id = ? AND is_active = 0').run(moduleId);
         }
         if (added > 0) console.log(`🌱  Seeded ${added} new module(s) into database.`);
     });
@@ -169,11 +221,10 @@ app.get('/api/questions/:moduleId', auth, (req, res) => {
 });
 
 // ── Candidate auth middleware ─────────────────────────────
-// Verifies a regular-user JWT (no role field required)
+// Verifies a regular-user JWT from httpOnly cookie
 function auth(req, res, next) {
-    const header = req.headers.authorization;
-    if (!header) return res.status(401).json({ error: 'No token provided' });
-    const token = header.split(' ')[1];
+    const token = req.cookies.token;
+    if (!token) return res.status(401).json({ error: 'No token provided' });
     try {
         const payload = jwt.verify(token, SECRET);
         // Reject admin tokens on candidate-only routes
@@ -187,11 +238,10 @@ function auth(req, res, next) {
 }
 
 // ── Admin auth middleware ─────────────────────────────────
-// Verifies a JWT that has role === 'admin'
+// Verifies a JWT that has role === 'admin' from httpOnly cookie
 function adminAuth(req, res, next) {
-    const header = req.headers.authorization;
-    if (!header) return res.status(401).json({ error: 'No token provided' });
-    const token = header.split(' ')[1];
+    const token = req.cookies.adminToken;
+    if (!token) return res.status(401).json({ error: 'No token provided' });
     try {
         const payload = jwt.verify(token, SECRET);
         if (payload.role !== 'admin')
@@ -226,7 +276,8 @@ app.post('/api/register', authLimiter, async (req, res) => {
         { id: result.lastInsertRowid, name: name.trim(), email: email.toLowerCase() },
         SECRET, { expiresIn: '8h' }
     );
-    res.json({ token, name: name.trim(), id: result.lastInsertRowid });
+    res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 8 * 3600 * 1000 });
+    res.json({ name: name.trim(), id: result.lastInsertRowid });
 });
 
 // ── POST /api/login ──────────────────────────────────────
@@ -243,7 +294,8 @@ app.post('/api/login', authLimiter, async (req, res) => {
         { id: candidate.id, name: candidate.name, email: candidate.email },
         SECRET, { expiresIn: '8h' }
     );
-    res.json({ token, name: candidate.name, id: candidate.id });
+    res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 8 * 3600 * 1000 });
+    res.json({ name: candidate.name, id: candidate.id });
 });
 
 // ── POST /api/admin/login ────────────────────────────────
@@ -259,12 +311,25 @@ app.post('/api/admin/login', authLimiter, (req, res) => {
         { role: 'admin', email: ADMIN_EMAIL },
         SECRET, { expiresIn: '8h' }
     );
-    res.json({ token });
+    res.cookie('adminToken', token, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 8 * 3600 * 1000 });
+    res.json({ ok: true });
 });
 
 // ── GET /api/admin/verify ────────────────────────────────
 // Used by admin.html on load to confirm the token is valid admin
 app.get('/api/admin/verify', adminAuth, (req, res) => {
+    res.json({ ok: true });
+});
+
+// ── POST /api/logout ─────────────────────────────────────
+app.post('/api/logout', (req, res) => {
+    res.clearCookie('token', { httpOnly: true, secure: true, sameSite: 'strict' });
+    res.json({ ok: true });
+});
+
+// ── POST /api/admin/logout ───────────────────────────────
+app.post('/api/admin/logout', (req, res) => {
+    res.clearCookie('adminToken', { httpOnly: true, secure: true, sameSite: 'strict' });
     res.json({ ok: true });
 });
 

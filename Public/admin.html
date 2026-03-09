@@ -1128,20 +1128,17 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script>
-        const token = sessionStorage.getItem('adminToken');
-        if (!token) window.location.href = 'admin-login.html';
+        if (!sessionStorage.getItem('adminLoggedIn')) window.location.href = 'admin-login.html';
 
-        // Verify the token is a valid admin token server-side
+        // Verify the cookie is a valid admin token server-side
         (async () => {
             try {
-                const res = await fetch(`${API}/admin/verify`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const res = await fetch(`${API}/admin/verify`);
                 if (!res.ok) { adminLogout(); }
             } catch { adminLogout(); }
         })();
 
-        function logout() { sessionStorage.removeItem('adminToken'); window.location.href = 'admin-login.html'; }
+        function logout() { adminLogout(); }
         function authHeaders() { return adminAuthHeaders(); }
 
         let allSessions = [];
