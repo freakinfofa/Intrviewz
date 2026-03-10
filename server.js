@@ -25,6 +25,63 @@ if (!ADMIN_PASSWORD) {
     process.exit(1);
 }
 
+// ── Input Validation & Sanitization ────────────────────────────
+// Length limits for user inputs
+const MAX_NAME_LENGTH = 100;
+const MAX_EMAIL_LENGTH = 254;
+const MAX_PASSWORD_LENGTH = 128;
+const MAX_QUESTION_LENGTH = 2000;
+const MAX_OPTION_LENGTH = 500;
+const MAX_MODULE_ID_LENGTH = 50;
+const MAX_MODULE_NAME_LENGTH = 100;
+
+// HTML escape function to prevent XSS in emails and displayed content
+function escapeHtml(str) {
+    if (typeof str !== 'string') return '';
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;')
+        .replace(/`/g, '&#x60;');
+}
+
+// Validate string length and trim
+function sanitizeString(str, maxLen, fieldName) {
+    if (!str || typeof str !== 'string') {
+        return { error: `${fieldName} is required.` };
+    }
+    const trimmed = str.trim();
+    if (trimmed.length === 0) {
+        return { error: `${fieldName} cannot be empty.` };
+    }
+    if (trimmed.length > maxLen) {
+        return { error: `${fieldName} must be ${maxLen} characters or less.` };
+    }
+    return { value: trimmed };
+}
+
+// Validate email format
+function validateEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return { error: 'Invalid email format.' };
+    }
+    return { value: email.toLowerCase() };
+}
+
+// Validate password strength
+function validatePassword(password) {
+    if (password.length < 6) {
+        return { error: 'Password must be at least 6 characters.' };
+    }
+    if (password.length > MAX_PASSWORD_LENGTH) {
+        return { error: `Password must be ${MAX_PASSWORD_LENGTH} characters or less.` };
+    }
+    return { value: password };
+}
+
 // ── SendGrid setup ────────────────────────────────────────
 const SG_KEY = process.env.SENDGRID_API_KEY || '';
 const SG_FROM = process.env.SENDGRID_FROM || '';
@@ -256,28 +313,40 @@ function adminAuth(req, res, next) {
 // ── POST /api/register ───────────────────────────────────
 app.post('/api/register', authLimiter, async (req, res) => {
     const { name, email, password } = req.body;
-    if (!name || !email || !password)
-        return res.status(400).json({ error: 'Name, email and password are required.' });
+    
+    // Validate name
+    const nameResult = sanitizeString(name, MAX_NAME_LENGTH, 'Name');
+    if (nameResult.error) return res.status(400).json({ error: nameResult.error });
+    
+    // Validate email
+    const emailResult = sanitizeString(email, MAX_EMAIL_LENGTH, 'Email');
+    if (emailResult.error) return res.status(400).json({ error: emailResult.error });
+    const validatedEmail = validateEmail(emailResult.value);
+    if (validatedEmail.error) return res.status(400).json({ error: validatedEmail.error });
+    
+    // Validate password
+    const passwordResult = validatePassword(password);
+    if (passwordResult.error) return res.status(400).json({ error: passwordResult.error });
 
     // Prevent registering with the admin email
-    if (email.toLowerCase() === ADMIN_EMAIL)
+    if (validatedEmail.value === ADMIN_EMAIL)
         return res.status(409).json({ error: 'That email address is not available.' });
 
-    const existing = db.prepare('SELECT id FROM candidates WHERE email = ?').get(email.toLowerCase());
+    const existing = db.prepare('SELECT id FROM candidates WHERE email = ?').get(validatedEmail.value);
     if (existing)
         return res.status(409).json({ error: 'An account with that email already exists.' });
 
-    const hash = await bcrypt.hash(password, 10);
+    const hash = await bcrypt.hash(passwordResult.value, 10);
     const result = db.prepare(
         'INSERT INTO candidates (name, email, password_hash) VALUES (?, ?, ?)'
-    ).run(name.trim(), email.toLowerCase(), hash);
+    ).run(nameResult.value, validatedEmail.value, hash);
 
     const token = jwt.sign(
-        { id: result.lastInsertRowid, name: name.trim(), email: email.toLowerCase() },
+        { id: result.lastInsertRowid, name: nameResult.value, email: validatedEmail.value },
         SECRET, { expiresIn: '8h' }
     );
     res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 8 * 3600 * 1000 });
-    res.json({ name: name.trim(), id: result.lastInsertRowid });
+    res.json({ name: nameResult.value, id: result.lastInsertRowid });
 });
 
 // ── POST /api/login ──────────────────────────────────────
@@ -849,6 +918,11 @@ app.post('/api/submit', auth, (req, res) => {
 async function sendResultsEmail({ candidateName, candidateEmail, moduleName, score, total, pct, answers }) {
     if (!SG_KEY || SG_KEY === 'SG.your-api-key-here' || !NOTIFY_EMAIL || !SG_FROM) return;
 
+    // Escape user-generated content to prevent XSS
+    const safeName = escapeHtml(candidateName);
+    const safeEmail = escapeHtml(candidateEmail);
+    const safeModuleName = escapeHtml(moduleName);
+
     const passed = pct >= 70;
     const scoreColor = pct >= 80 ? '#22c55e' : pct >= 60 ? '#f59e0b' : '#ef4444';
     const resultText = passed ? '✅ PASSED' : '❌ NEEDS REVIEW';
@@ -857,14 +931,18 @@ async function sendResultsEmail({ candidateName, candidateEmail, moduleName, sco
         const isOpenEnded = a.correct_option === '(Open-ended - no correct answer)';
         const correct = !!a.is_correct;
         const icon = isOpenEnded ? '📝' : (correct ? '✅' : (a.chosen_option ? '❌' : '⬜'));
-        const chosen = a.chosen_option || '<em style="color:#888">Not answered</em>';
-        const correctAns = isOpenEnded ? '<em style="color:#8b90b0">Open-ended response</em>' : a.correct_option;
+        const chosen = a.chosen_option 
+            ? escapeHtml(a.chosen_option) 
+            : '<em style="color:#888">Not answered</em>';
+        const correctAns = isOpenEnded 
+            ? '<em style="color:#8b90b0">Open-ended response</em>' 
+            : escapeHtml(a.correct_option || '');
         const answerColor = isOpenEnded ? '#8b90b0' : (correct ? '#22c55e' : '#ef4444');
         
         return `
         <tr style="border-bottom:1px solid #2e3350;">
           <td style="padding:10px 12px;color:#8b90b0;font-size:13px;vertical-align:top;">${icon} Q${i + 1}</td>
-          <td style="padding:10px 12px;font-size:13px;vertical-align:top;">${a.question_text}</td>
+          <td style="padding:10px 12px;font-size:13px;vertical-align:top;">${escapeHtml(a.question_text || '')}</td>
           <td style="padding:10px 12px;font-size:13px;vertical-align:top;color:${answerColor};">${chosen}</td>
           <td style="padding:10px 12px;font-size:13px;vertical-align:top;color:#22c55e;">${correctAns}</td>
         </tr>`;
@@ -879,7 +957,7 @@ async function sendResultsEmail({ candidateName, candidateEmail, moduleName, sco
         <!-- Header -->
         <div style="background:linear-gradient(135deg,#4f8ef7,#7c5cfc);padding:28px 32px;">
           <div style="font-size:22px;font-weight:700;color:#fff;">Assessment Results</div>
-          <div style="font-size:14px;color:rgba(255,255,255,.75);margin-top:4px;">${moduleName}</div>
+          <div style="font-size:14px;color:rgba(255,255,255,.75);margin-top:4px;">${safeModuleName}</div>
         </div>
 
         <!-- Score card -->
@@ -888,8 +966,8 @@ async function sendResultsEmail({ candidateName, candidateEmail, moduleName, sco
             <tr>
               <td>
                 <div style="font-size:13px;color:#8b90b0;margin-bottom:4px;">Candidate</div>
-                <div style="font-size:16px;font-weight:600;">${candidateName}</div>
-                <div style="font-size:13px;color:#8b90b0;">${candidateEmail}</div>
+                <div style="font-size:16px;font-weight:600;">${safeName}</div>
+                <div style="font-size:13px;color:#8b90b0;">${safeEmail}</div>
               </td>
               <td style="text-align:right;">
                 <div style="font-size:42px;font-weight:700;color:${scoreColor};">${pct}%</div>
@@ -1072,6 +1150,11 @@ app.get('/api/diagram/submission-data/:id', auth, (req, res) => {
 async function sendDiagramEmail({ candidateName, candidateEmail, moduleName, submissionId }) {
     if (!SG_KEY || SG_KEY === 'SG.your-api-key-here' || !NOTIFY_EMAIL || !SG_FROM) return;
 
+    // Escape user-generated content to prevent XSS
+    const safeName = escapeHtml(candidateName);
+    const safeEmail = escapeHtml(candidateEmail);
+    const safeModuleName = escapeHtml(moduleName);
+
     const html = `
     <!DOCTYPE html>
     <html>
@@ -1079,12 +1162,12 @@ async function sendDiagramEmail({ candidateName, candidateEmail, moduleName, sub
       <div style="max-width:680px;margin:32px auto;background:#1a1d27;border:1px solid #2e3350;border-radius:14px;overflow:hidden;">
         <div style="background:linear-gradient(135deg,#4f8ef7,#7c5cfc);padding:28px 32px;">
           <div style="font-size:22px;font-weight:700;color:#fff;">📐 Diagram Submission</div>
-          <div style="font-size:14px;color:rgba(255,255,255,.75);margin-top:4px;">${moduleName}</div>
+          <div style="font-size:14px;color:rgba(255,255,255,.75);margin-top:4px;">${safeModuleName}</div>
         </div>
         <div style="padding:28px 32px;">
           <div style="font-size:13px;color:#8b90b0;margin-bottom:4px;">Candidate</div>
-          <div style="font-size:16px;font-weight:600;">${candidateName}</div>
-          <div style="font-size:13px;color:#8b90b0;">${candidateEmail}</div>
+          <div style="font-size:16px;font-weight:600;">${safeName}</div>
+          <div style="font-size:13px;color:#8b90b0;">${safeEmail}</div>
           <div style="margin-top:20px;padding:14px;background:#22263a;border:1px solid #2e3350;border-radius:10px;font-size:14px;color:#8b90b0;">
             A diagram has been submitted. Log in to the admin panel to view the full drawing.
           </div>
@@ -1100,10 +1183,10 @@ async function sendDiagramEmail({ candidateName, candidateEmail, moduleName, sub
         await sgMail.send({
             to: NOTIFY_EMAIL,
             from: SG_FROM,
-            subject: `[Assessment] ${candidateName} – ${moduleName} – Diagram Submitted`,
+            subject: `[Assessment] ${safeName} – ${safeModuleName} – Diagram Submitted`,
             html
         });
-        console.log(`✉️  Diagram email sent for ${candidateName} (${moduleName})`);
+        console.log(`✉️  Diagram email sent for ${safeName} (${safeModuleName})`);
     } catch (err) {
         console.error('SendGrid error:', err.response?.body?.errors || err.message);
     }

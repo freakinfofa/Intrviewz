@@ -1,70 +1,189 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Interview Assessment Portal – Sign In</title>
+    <title>Intrviewz – Assessment Portal</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;1,8..60,400&family=Space+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="css/styles.css" />
+    <style>
+        /* ── Centered Layout ── */
+        .auth-layout {
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: var(--space-6);
+        }
+
+        .auth-form-container {
+            width: 100%;
+            max-width: 380px;
+        }
+
+        .auth-brand {
+            text-align: center;
+            margin-bottom: var(--space-8);
+        }
+
+        .auth-brand img {
+            height: 48px;
+            width: auto;
+            margin-bottom: var(--space-4);
+        }
+
+        .auth-brand h1 {
+            font-size: var(--text-2xl);
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            margin-bottom: var(--space-2);
+        }
+
+        .auth-brand p {
+            font-size: var(--text-sm);
+            color: var(--text-secondary);
+            font-family: var(--font-body);
+            line-height: 1.5;
+        }
+
+        .auth-form-container h2 {
+            font-size: var(--text-xl);
+            margin-bottom: var(--space-2);
+        }
+
+        .auth-form-container .subtitle {
+            color: var(--text-tertiary);
+            margin-bottom: var(--space-6);
+            font-family: var(--font-body);
+        }
+
+        .form-mode {
+            display: none;
+        }
+
+        .form-mode.active {
+            display: block;
+        }
+
+        .form-footer {
+            margin-top: var(--space-6);
+            padding-top: var(--space-6);
+            border-top: 1px solid var(--border);
+        }
+
+        .form-footer p {
+            font-family: var(--font-display);
+            font-size: var(--text-sm);
+            color: var(--text-tertiary);
+            margin-bottom: var(--space-3);
+        }
+
+        .form-footer a {
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .admin-access {
+            position: absolute;
+            top: var(--space-4);
+            right: var(--space-6);
+            font-family: var(--font-display);
+            font-size: var(--text-xs);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-tertiary);
+            text-decoration: none;
+            padding: var(--space-2) var(--space-3);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            transition: all var(--transition-fast);
+        }
+
+        .admin-access:hover {
+            color: var(--text);
+            border-color: var(--text);
+        }
+
+        /* ── Mobile ── */
+        @media (max-width: 500px) {
+            .auth-brand h1 {
+                font-size: var(--text-xl);
+            }
+        }
+    </style>
 </head>
-
-<body class="body-centered">
-    <div class="container">
-        <div class="logo">
-            <img src="images/logo.png" alt="Assessment Portal Logo" class="brand-logo" />
-            <h1>Assessment Portal</h1>
-            <p>Interview evaluation platform</p>
+<body>
+    <div class="auth-layout">
+        <div class="auth-brand">
+            <img src="images/logo.png" alt="Intrviewz Logo" />
+            <h1>Intrviewz</h1>
         </div>
-
-        <div class="hero-image">
-            <img src="images/hero.png" alt="Assessment Platform Illustration" />
-        </div>
-
-        <div class="card">
-            <div class="tabs">
-                <button class="tab active" id="tabLogin" onclick="switchTab('login')">Log In</button>
-                <button class="tab" id="tabRegister" onclick="switchTab('register')">Register</button>
-            </div>
-
+        
+        <div class="auth-form-container">
             <div id="alertBox" class="alert"></div>
 
-            <!-- Login form -->
-            <form id="loginForm" onsubmit="handleLogin(event)">
-                <div class="form-group">
-                    <label for="loginEmail">Email Address</label>
-                    <input type="email" id="loginEmail" placeholder="you@example.com" required />
-                </div>
-                <div class="form-group">
-                    <label for="loginPassword">Password</label>
-                    <input type="password" id="loginPassword" placeholder="••••••••" required />
-                </div>
-                <button type="submit" class="btn btn-primary" id="loginBtn">Log In</button>
-            </form>
+            <div id="loginMode" class="form-mode active">
+                <h2>Welcome Back</h2>
+                <p class="subtitle">Sign in to continue</p>
+                
+                <form id="loginForm" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label for="loginEmail">Email</label>
+                        <input type="email" id="loginEmail" placeholder="you@example.com" required autocomplete="email" />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password" />
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">
+                        Sign In
+                    </button>
+                    </form>
 
-            <!-- Register form -->
-            <form id="registerForm" style="display:none;" onsubmit="handleRegister(event)">
-                <div class="form-group">
-                    <label for="regName">Full Name</label>
-                    <input type="text" id="regName" placeholder="Jane Smith" required />
+                    <div class="form-footer">
+                        <p>New candidate?</p>
+                        <a href="#" onclick="switchMode('register'); return false;">Create an account →</a>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="regEmail">Email Address</label>
-                    <input type="email" id="regEmail" placeholder="you@example.com" required />
+
+                <!-- Register Mode -->
+                <div id="registerMode" class="form-mode">
+                    <h2>Create Account</h2>
+                    <p class="subtitle">Start your assessment journey</p>
+                    
+                    <form id="registerForm" onsubmit="handleRegister(event)">
+                        <div class="form-group">
+                            <label for="regName">Full Name</label>
+                            <input type="text" id="regName" placeholder="Jane Smith" required maxlength="100" autocomplete="name" />
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="regEmail">Email Address</label>
+                            <input type="email" id="regEmail" placeholder="you@example.com" required maxlength="254" autocomplete="email" />
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="regPassword">Password</label>
+                            <input type="password" id="regPassword" placeholder="Minimum 6 characters" minlength="6" maxlength="128" required autocomplete="new-password" />
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-lg" id="registerBtn" style="width: 100%;">
+                            Create Account
+                        </button>
+                    </form>
+
+                    <div class="form-footer">
+                        <p>Already have an account?</p>
+                        <a href="#" onclick="switchMode('login'); return false;">Sign in instead →</a>
                 </div>
-                <div class="form-group">
-                    <label for="regPassword">Password</label>
-                    <input type="password" id="regPassword" placeholder="Min. 6 characters" minlength="6" required />
-                </div>
-                <button type="submit" class="btn btn-primary" id="registerBtn">Create Account</button>
-            </form>
+            </div>
         </div>
-        <a href="admin-login.html"
-            style="display:block;text-align:center;margin-top:18px;color:#4a5080;font-size:.75rem;text-decoration:none;">Administrator
-            access</a>
+        
+        <a href="admin-login.html" class="admin-access">Admin Access</a>
     </div>
 
     <script src="js/app.js"></script>
@@ -74,21 +193,29 @@
             window.location.href = 'dashboard.html';
         }
 
-        function switchTab(tab) {
-            const isLogin = tab === 'login';
-            document.getElementById('tabLogin').classList.toggle('active', isLogin);
-            document.getElementById('tabRegister').classList.toggle('active', !isLogin);
-            document.getElementById('loginForm').style.display = isLogin ? '' : 'none';
-            document.getElementById('registerForm').style.display = isLogin ? 'none' : '';
+        function switchMode(mode) {
+            document.getElementById('loginMode').classList.toggle('active', mode === 'login');
+            document.getElementById('registerMode').classList.toggle('active', mode === 'register');
             hideAlert();
         }
 
         async function handleLogin(e) {
             e.preventDefault();
+            
+            // Prevent double-submission
+            if (isSubmitting('loginBtn')) return;
+            
+            // Check network status
+            if (!navigator.onLine) {
+                showAlert('You are offline. Please check your internet connection and try again.');
+                return;
+            }
+            
             hideAlert();
-            setLoading('loginBtn', true, 'Log In');
+            setLoading('loginBtn', true, 'Sign In');
+            
             try {
-                const res = await fetch(`${API}/login`, {
+                const res = await fetchWithRetry(`${API}/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -98,22 +225,34 @@
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error);
+                
                 sessionStorage.setItem('candidateName', data.name);
                 sessionStorage.setItem('candidateId', data.id);
                 window.location.href = 'dashboard.html';
             } catch (err) {
                 showAlert(err.message || 'Login failed. Please try again.');
             } finally {
-                setLoading('loginBtn', false, 'Log In');
+                setLoading('loginBtn', false, 'Sign In');
             }
         }
 
         async function handleRegister(e) {
             e.preventDefault();
+            
+            // Prevent double-submission
+            if (isSubmitting('registerBtn')) return;
+            
+            // Check network status
+            if (!navigator.onLine) {
+                showAlert('You are offline. Please check your internet connection and try again.');
+                return;
+            }
+            
             hideAlert();
             setLoading('registerBtn', true, 'Create Account');
+            
             try {
-                const res = await fetch(`${API}/register`, {
+                const res = await fetchWithRetry(`${API}/register`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -124,6 +263,7 @@
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error);
+                
                 sessionStorage.setItem('candidateName', data.name);
                 sessionStorage.setItem('candidateId', data.id);
                 window.location.href = 'dashboard.html';
@@ -135,5 +275,4 @@
         }
     </script>
 </body>
-
 </html>

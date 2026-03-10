@@ -4,25 +4,127 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Admin Login – Assessment Portal</title>
+    <title>Control Room Login – Intrviewz</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;1,8..60,400&display=swap"
         rel="stylesheet" />
     <link rel="stylesheet" href="css/styles.css" />
+    <style>
+        .admin-login-shell {
+            align-items: stretch;
+        }
+
+        .admin-login-intro {
+            gap: var(--space-8);
+        }
+
+        .admin-login-kicker {
+            font-family: var(--font-display);
+            font-size: var(--text-xs);
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text-tertiary);
+            margin-bottom: var(--space-4);
+        }
+
+        .admin-login-intro h1 {
+            font-size: clamp(3rem, 2rem + 4vw, 5.4rem);
+            line-height: 0.92;
+            max-width: 7ch;
+            margin-bottom: var(--space-4);
+        }
+
+        .admin-login-intro p {
+            max-width: 34ch;
+            margin-bottom: 0;
+            color: var(--text-secondary);
+            font-size: var(--text-lg);
+        }
+
+        .admin-login-notes {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: var(--space-3);
+        }
+
+        .admin-login-note {
+            padding: var(--space-4);
+            background: color-mix(in oklab, var(--surface) 45%, transparent);
+            border: 1px solid color-mix(in oklab, var(--border) 78%, var(--accent2));
+            border-radius: var(--radius-lg);
+        }
+
+        .admin-login-note strong {
+            display: block;
+            font-family: var(--font-display);
+            font-size: var(--text-sm);
+            margin-bottom: var(--space-1);
+        }
+
+        .admin-login-panel {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: clamp(1.75rem, 4vw, 2.75rem);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .admin-login-panel h2 {
+            font-size: var(--text-xl);
+            margin-bottom: var(--space-2);
+        }
+
+        .admin-login-panel .subtitle {
+            color: var(--text-secondary);
+            margin-bottom: var(--space-6);
+        }
+
+        .admin-login-footer {
+            margin-top: var(--space-6);
+            padding-top: var(--space-4);
+            border-top: 1px solid var(--border);
+        }
+
+        @media (max-width: 768px) {
+            .admin-login-notes {
+                grid-template-columns: 1fr;
+            }
+
+            .admin-login-intro h1 {
+                max-width: none;
+            }
+        }
+    </style>
 </head>
 
-<body class="body-centered"
-    style="background-image: radial-gradient(ellipse 80% 60% at 20% 10%, rgba(245, 158, 11, .10) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 80% 90%, rgba(249, 115, 22, .08) 0%, transparent 60%);">
-    <div class="container">
-        <div class="logo">
-            <img src="images/logo.png" alt="Assessment Portal Logo" class="brand-logo" />
-            <h1>Admin Access</h1>
-            <p>Assessment Portal</p>
-            <span class="admin-badge">Restricted</span>
-        </div>
+<body class="body-centered">
+    <div class="container admin-login-shell">
+        <section class="logo admin-login-intro">
+            <div>
+                <img src="images/logo.png" alt="Intrviewz logo" class="brand-logo" />
+                <div class="admin-login-kicker">Internal operations</div>
+                <h1>Control Room</h1>
+                <p>Review candidate flow, reopen modules, and manage the assessment catalog from one deliberately quiet operations desk.</p>
+            </div>
+            <div>
+                <span class="admin-badge">Restricted</span>
+                <div class="admin-login-notes mt-4">
+                    <div class="admin-login-note">
+                        <strong>Live oversight</strong>
+                        Session reviews, diagram submissions, and retakes stay in one place.
+                    </div>
+                    <div class="admin-login-note">
+                        <strong>Private access</strong>
+                        Use your admin credentials only. Candidate accounts do not unlock this area.
+                    </div>
+                </div>
+            </div>
+        </section>
 
-        <div class="card">
+        <section class="card admin-login-panel">
+            <h2>Sign in</h2>
+            <p class="subtitle">Authenticate to enter the Intrviewz control room.</p>
             <div id="alertBox" class="alert"></div>
             <form onsubmit="handleLogin(event)">
                 <div class="form-group">
@@ -33,10 +135,12 @@
                     <label for="password">Password</label>
                     <input type="password" id="password" placeholder="••••••••" required />
                 </div>
-                <button type="submit" class="btn" id="loginBtn">Sign In as Admin</button>
+                <button type="submit" class="btn btn-primary btn-lg" id="loginBtn" style="width: 100%;">Enter Control Room</button>
             </form>
-        </div>
-        <a class="back-link" href="index.html">← Back to Candidate Login</a>
+            <div class="admin-login-footer">
+                <a class="back-link" href="index.html">← Return to candidate portal</a>
+            </div>
+        </section>
     </div>
 
     <script src="js/app.js"></script>
@@ -49,7 +153,7 @@
         async function handleLogin(e) {
             e.preventDefault();
             hideAlert();
-            setLoading('loginBtn', true, 'Sign In as Admin');
+            setLoading('loginBtn', true, 'Enter Control Room');
 
             try {
                 const res = await fetch(`${API}/admin/login`, {
@@ -66,7 +170,7 @@
                 window.location.href = 'admin.html';
             } catch (err) {
                 showAlert(err.message);
-                setLoading('loginBtn', false, 'Sign In as Admin');
+                setLoading('loginBtn', false, 'Enter Control Room');
             }
         }
     </script>

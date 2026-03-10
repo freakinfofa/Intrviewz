@@ -4,17 +4,189 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Admin Dashboard – Assessment Portal</title>
+    <title>Control Room – Intrviewz</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;1,8..60,400&display=swap"
         rel="stylesheet" />
     <link rel="stylesheet" href="css/styles.css" />
     <style>
         :root {
-            --warn: #f59e0b;
+            --warn: var(--warning);
         }
 
+
+        .admin-hero {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--space-5);
+            margin-bottom: var(--space-6);
+        }
+
+        .admin-hero-main,
+        .admin-hero-rail {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            background: var(--surface);
+            padding: var(--space-5);
+        }
+
+        .admin-hero-rail {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-3);
+        }
+
+        .admin-hero-kicker {
+            font-family: var(--font-display);
+            font-size: var(--text-xs);
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-tertiary);
+            margin-bottom: var(--space-2);
+        }
+
+        .admin-hero h1 {
+            font-size: var(--text-2xl);
+            line-height: 1.1;
+            max-width: 7ch;
+            margin-bottom: var(--space-4);
+        }
+
+        .admin-hero p {
+            max-width: 48ch;
+            font-size: var(--text-lg);
+            color: var(--text-secondary);
+            margin-bottom: 0;
+        }
+
+        .admin-hero-rail {
+            display: grid;
+            gap: var(--space-3);
+            align-content: start;
+            padding: clamp(1.25rem, 2vw, 2rem);
+            background: linear-gradient(180deg, color-mix(in oklab, var(--surface-elevated) 82%, white) 0%, var(--surface) 100%);
+        }
+
+        .admin-hero-note {
+            padding: var(--space-4);
+            background: color-mix(in oklab, var(--surface) 70%, transparent);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+        }
+
+        .admin-hero-note strong {
+            display: block;
+            font-family: var(--font-display);
+            font-size: var(--text-sm);
+            margin-bottom: var(--space-1);
+        }
+
+        .admin-stage {
+            display: grid;
+            gap: var(--space-6);
+        }
+
+        .admin-section-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+            gap: var(--space-5);
+            align-items: start;
+        }
+
+        .admin-panel {
+            padding: var(--space-5);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            background: var(--surface);
+            margin-bottom: var(--space-5);
+        }
+
+        .admin-panel-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: var(--space-4);
+            margin-bottom: var(--space-4);
+            flex-wrap: wrap;
+        }
+
+        .admin-panel-copy {
+            max-width: 42rem;
+        }
+
+        .admin-panel-kicker {
+            display: inline-flex;
+            align-items: center;
+            margin-bottom: var(--space-1);
+            font-family: var(--font-display);
+            font-size: var(--text-xs);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-tertiary);
+        }
+
+        .admin-panel-copy p {
+            margin-top: var(--space-1);
+            margin-bottom: 0;
+            color: var(--text-secondary);
+            font-size: var(--text-sm);
+        }
+
+        .admin-panel-meta {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            flex-wrap: wrap;
+        }
+
+        .admin-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.38rem 0.75rem;
+            border-radius: 999px;
+            border: 1px solid color-mix(in oklab, var(--border) 72%, var(--accent2));
+            background: color-mix(in oklab, var(--surface2) 82%, white);
+            font-family: var(--font-display);
+            font-size: var(--text-xs);
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .admin-panel .table-wrap,
+        .admin-panel .module-grid {
+            margin-bottom: 0;
+        }
+
+        .candidate-profile-stats {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: var(--space-3);
+            margin-bottom: var(--space-6);
+        }
+
+        .profile-stat {
+            padding: 1rem 1.1rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            background: color-mix(in oklab, var(--surface2) 82%, white);
+        }
+
+        .profile-stat-label {
+            font-size: .72rem;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .profile-stat-value {
+            font-weight: 600;
+            font-size: .9rem;
+        }
 
 
         .admin-badge {
@@ -22,9 +194,9 @@
             font-weight: 700;
             letter-spacing: .5px;
             text-transform: uppercase;
-            background: rgba(245, 158, 11, .15);
+            background: rgba(201, 166, 107, .15);
             color: var(--warn);
-            border: 1px solid rgba(245, 158, 11, .3);
+            border: 1px solid rgba(201, 166, 107, .3);
             border-radius: 20px;
             padding: 2px 9px;
         }
@@ -34,29 +206,31 @@
         /* ── Stats row ── */
         .stats-row {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 16px;
-            margin-bottom: 40px;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: var(--space-3);
+            margin-bottom: var(--space-5);
         }
 
         .stat-card {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            padding: 22px 24px;
+            padding: var(--space-4);
         }
 
         .stat-card .val {
-            font-size: 2rem;
+            font-family: var(--font-display);
+            font-size: var(--text-xl);
             font-weight: 700;
-            margin-bottom: 4px;
+            margin-bottom: var(--space-1);
         }
 
         .stat-card .lbl {
-            font-size: .78rem;
-            color: var(--muted);
+            font-family: var(--font-display);
+            font-size: var(--text-xs);
+            color: var(--text-tertiary);
             text-transform: uppercase;
-            letter-spacing: .5px;
+            letter-spacing: 0.05em;
         }
 
         .stat-card.blue .val {
@@ -79,7 +253,9 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 16px;
+            gap: var(--space-4);
+            margin-bottom: var(--space-4);
+            flex-wrap: wrap;
         }
 
         .toolbar {
@@ -87,6 +263,12 @@
             gap: 12px;
             align-items: center;
             flex-wrap: wrap;
+        }
+
+        .toolbar select {
+            min-width: 11rem;
+            border-radius: 999px;
+            background: color-mix(in oklab, var(--surface2) 82%, white);
         }
 
         .search-wrap {
@@ -97,10 +279,10 @@
 
         .search-wrap input {
             width: 100%;
-            background: var(--surface2);
+            background: color-mix(in oklab, var(--surface2) 82%, white);
             border: 1px solid var(--border);
-            border-radius: 9px;
-            padding: 9px 14px 9px 36px;
+            border-radius: 999px;
+            padding: 0.75rem 1rem 0.75rem 2.35rem;
             color: var(--text);
             font-size: .88rem;
             font-family: inherit;
@@ -131,7 +313,7 @@
             border: 1px solid var(--border);
             border-radius: var(--radius);
             overflow: hidden;
-            margin-bottom: 40px;
+            margin-bottom: var(--space-5);
         }
 
         table {
@@ -140,14 +322,14 @@
         }
 
         thead th {
-            padding: 13px 18px;
+            padding: var(--space-3) var(--space-4);
             text-align: left;
-            font-size: .73rem;
+            font-size: var(--text-xs);
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: .5px;
-            color: var(--muted);
-            background: var(--surface2);
+            letter-spacing: 0.05em;
+            color: var(--text-tertiary);
+            background: var(--surface-elevated);
             border-bottom: 1px solid var(--border);
             white-space: nowrap;
             cursor: pointer;
@@ -206,21 +388,21 @@
         }
 
         .score-badge.high {
-            background: rgba(34, 197, 94, .12);
-            color: #86efac;
-            border: 1px solid rgba(34, 197, 94, .3);
+            background: var(--success-bg);
+            color: color-mix(in oklab, var(--success) 60%, white);
+            border: 1px solid color-mix(in oklab, var(--success) 30%, transparent);
         }
 
         .score-badge.mid {
-            background: rgba(245, 158, 11, .12);
-            color: #fde68a;
-            border: 1px solid rgba(245, 158, 11, .3);
+            background: var(--warning-bg);
+            color: color-mix(in oklab, var(--warning) 65%, white);
+            border: 1px solid color-mix(in oklab, var(--warning) 30%, transparent);
         }
 
         .score-badge.low {
-            background: rgba(239, 68, 68, .12);
-            color: #fca5a5;
-            border: 1px solid rgba(239, 68, 68, .3);
+            background: var(--danger-bg);
+            color: color-mix(in oklab, var(--danger) 60%, white);
+            border: 1px solid color-mix(in oklab, var(--danger) 30%, transparent);
         }
 
         .avatar {
@@ -233,7 +415,7 @@
             justify-content: center;
             font-size: .78rem;
             font-weight: 700;
-            color: #fff;
+            color: white;
             flex-shrink: 0;
         }
 
@@ -254,19 +436,19 @@
         }
 
         .review-btn {
-            background: none;
+            background: var(--surface);
             border: 1px solid var(--border);
             color: var(--accent);
-            padding: 5px 13px;
-            border-radius: 7px;
+            padding: 0.45rem 0.8rem;
+            border-radius: 999px;
             cursor: pointer;
             font-size: .8rem;
-            font-family: inherit;
+            font-family: var(--font-display);
             transition: all .18s;
         }
 
         .review-btn:hover {
-            background: rgba(79, 142, 247, .1);
+            background: var(--accent-soft);
             border-color: var(--accent);
         }
 
@@ -320,12 +502,12 @@
             display: inline-flex;
             align-items: center;
             gap: 7px;
-            padding: 8px 18px;
-            border-radius: 9px;
+            padding: 0.7rem 1rem;
+            border-radius: 999px;
             border: 1px solid var(--border);
-            background: var(--surface2);
+            background: color-mix(in oklab, var(--surface2) 82%, white);
             color: var(--text);
-            font-family: inherit;
+            font-family: var(--font-display);
             font-size: .85rem;
             font-weight: 500;
             cursor: pointer;
@@ -338,6 +520,18 @@
         }
 
         @media (max-width: 700px) {
+            .admin-hero {
+                grid-template-columns: 1fr;
+            }
+
+            .admin-section-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .candidate-profile-stats {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
             nav {
                 padding: 14px 16px;
             }
@@ -354,42 +548,52 @@
             .stats-row {
                 grid-template-columns: repeat(2, 1fr);
             }
+
+            .module-card-actions {
+                grid-template-columns: 1fr;
+            }
         }
 
         /* ── Module Manager ── */
         .module-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 14px;
-            margin-bottom: 40px;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: var(--space-3);
+            margin-bottom: var(--space-5);
         }
 
         .module-card {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 18px 20px;
+            border-radius: var(--radius-lg);
+            padding: var(--space-4);
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            transition: border-color .2s;
+            gap: var(--space-2);
         }
 
         .module-card:hover {
-            border-color: var(--muted);
+            border-color: var(--accent);
         }
 
         .module-card-top {
             display: flex;
             align-items: flex-start;
-            gap: 12px;
+            gap: var(--space-3);
         }
 
         .module-icon-big {
-            font-size: 1.8rem;
+            width: 2.5rem;
+            height: 2.5rem;
+            display: grid;
+            place-items: center;
+            font-size: 1.35rem;
             flex-shrink: 0;
             line-height: 1;
             margin-top: 2px;
+            border-radius: 0.85rem;
+            background: color-mix(in oklab, var(--accent-soft) 82%, white);
+            border: 1px solid color-mix(in oklab, var(--border) 68%, var(--accent2));
         }
 
         .module-card-info {
@@ -436,19 +640,20 @@
         }
 
         .mod-badge.active {
-            background: rgba(34, 197, 94, .12);
-            color: #86efac;
-            border: 1px solid rgba(34, 197, 94, .3);
+            background: var(--success-bg);
+            color: color-mix(in oklab, var(--success) 60%, white);
+            border: 1px solid color-mix(in oklab, var(--success) 30%, transparent);
         }
 
         .mod-badge.inactive {
-            background: rgba(100, 100, 140, .1);
+            background: color-mix(in oklab, var(--surface2) 90%, transparent);
             color: var(--muted);
             border: 1px solid var(--border);
         }
 
         .module-card-actions {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 8px;
             margin-top: 4px;
         }
@@ -487,7 +692,7 @@
         }
 
         .btn-mod.accent:hover {
-            background: rgba(79, 142, 247, .1);
+            background: rgba(45, 125, 143, .1);
         }
 
         /* Question editor modal */
@@ -498,9 +703,9 @@
         }
 
         .q-item {
-            background: var(--surface2);
+            background: linear-gradient(180deg, color-mix(in oklab, var(--surface2) 90%, white) 0%, var(--surface2) 100%);
             border: 1px solid var(--border);
-            border-radius: 10px;
+            border-radius: 14px;
             padding: 14px 16px;
         }
 
@@ -514,8 +719,8 @@
             font-size: .72rem;
             font-weight: 700;
             color: var(--accent);
-            background: rgba(79, 142, 247, .1);
-            border: 1px solid rgba(79, 142, 247, .3);
+            background: rgba(45, 125, 143, .1);
+            border: 1px solid rgba(45, 125, 143, .3);
             border-radius: 5px;
             padding: 1px 7px;
             flex-shrink: 0;
@@ -563,8 +768,8 @@
             gap: 4px;
             font-size: .74rem;
             color: var(--success);
-            background: rgba(34, 197, 94, .1);
-            border: 1px solid rgba(34, 197, 94, .25);
+            background: rgba(90, 154, 110, .1);
+            border: 1px solid rgba(90, 154, 110, .25);
             border-radius: 4px;
             padding: 2px 8px;
             margin-top: 6px;
@@ -645,7 +850,7 @@
             gap: 6px;
             padding: 7px 18px;
             background: var(--accent);
-            color: #fff;
+            color: white;
             border: none;
             border-radius: 8px;
             font-family: inherit;
@@ -676,26 +881,46 @@
 
         .btn-add-q:hover {
             border-color: var(--accent);
-            background: rgba(79, 142, 247, .05);
+            background: var(--accent-alpha);
         }
     </style>
 </head>
 
-<body class="body-dashboard">
+<body class="body-dashboard body-admin">
 
-    <nav>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <nav role="navigation" aria-label="Admin navigation">
         <div class="nav-brand">
-            <img src="images/logo.png" alt="Admin Logo" class="nav-brand-img" />
-            Admin Dashboard
-            <span class="admin-badge">Admin</span>
+            <img src="images/logo.png" alt="Intrviewz" class="nav-brand-img" />
+            Intrviewz Control Room
+            <span class="admin-badge" aria-label="Administrator access">Admin</span>
         </div>
         <div class="nav-right">
-            <a class="btn-sm" href="dashboard.html">← Candidate View</a>
-            <button class="btn-sm" onclick="adminLogout()">Log Out</button>
+            <a class="btn btn-secondary btn-sm" href="dashboard.html">← Candidate View</a>
+            <button class="btn btn-secondary btn-sm" onclick="adminLogout()" aria-label="Log out">Log Out</button>
         </div>
     </nav>
 
-    <main class="admin-main">
+    <main class="admin-main" id="main-content">
+        <section class="admin-hero">
+            <div class="admin-hero-main">
+                <div class="admin-hero-kicker">Operations ledger</div>
+                <h1>Control Room</h1>
+                <p>Monitor assessment flow, reopen attempts, and tune the module catalog from a single editorial workspace designed for quick decisions.</p>
+            </div>
+            <aside class="admin-hero-rail">
+                <div class="admin-hero-note">
+                    <strong>Review quickly</strong>
+                    Scan quiz performance, inspect diagram submissions, and drill into candidate histories without leaving the page.
+                </div>
+                <div class="admin-hero-note">
+                    <strong>Intervene carefully</strong>
+                    Grant retakes, activate modules, and update prompts with less friction when interviews change mid-cycle.
+                </div>
+            </aside>
+        </section>
+
         <!-- Stats -->
         <div class="stats-row" id="statsRow">
             <div class="stat-card blue">
@@ -720,29 +945,41 @@
             </div>
         </div>
 
+        <div class="admin-stage">
+
         <!-- Registered Users -->
-        <div class="section-header" style="margin-top:8px;">
-            <div class="section-title">Registered Users</div>
-        </div>
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Candidate</th>
-                        <th>Registered</th>
-                        <th>Tests Taken</th>
-                        <th>Avg Score</th>
-                        <th>Last Activity</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="candidatesBody">
-                    <tr>
-                        <td colspan="5" class="empty-state"><span class="spinner"></span></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        <section class="admin-panel">
+            <div class="admin-panel-header">
+                <div class="admin-panel-copy">
+                    <div class="admin-panel-kicker">People</div>
+                    <div class="section-title">Registered Users</div>
+                    <p>Every candidate account in one ledger, with activity signals that help you spot stalled interviews and heavy usage fast.</p>
+                </div>
+                <div class="admin-panel-meta">
+                    <span class="admin-chip">Profiles</span>
+                    <span class="admin-chip">Retake access</span>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Candidate</th>
+                            <th>Registered</th>
+                            <th>Tests Taken</th>
+                            <th>Avg Score</th>
+                            <th>Last Activity</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="candidatesBody">
+                        <tr>
+                            <td colspan="6" class="empty-state"><span class="spinner"></span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
 
         <!-- Retake Grant Modal -->
         <div class="modal-overlay" id="retakeModalOverlay" onclick="closeRetakeModal(event)">
@@ -767,22 +1004,22 @@
                 </div>
                 <div class="modal-body">
                     <!-- Candidate Stats -->
-                    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px;">
-                        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;flex:1;min-width:140px;">
-                            <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:4px;">Email</div>
-                            <div style="font-weight:600;font-size:.9rem;" id="cpEmail"></div>
+                    <div class="candidate-profile-stats">
+                        <div class="profile-stat">
+                            <div class="profile-stat-label">Email</div>
+                            <div class="profile-stat-value" id="cpEmail"></div>
                         </div>
-                        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;flex:1;min-width:140px;">
-                            <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:4px;">Registered</div>
-                            <div style="font-weight:600;font-size:.9rem;" id="cpRegistered"></div>
+                        <div class="profile-stat">
+                            <div class="profile-stat-label">Registered</div>
+                            <div class="profile-stat-value" id="cpRegistered"></div>
                         </div>
-                        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;flex:1;min-width:140px;">
-                            <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:4px;">Tests Taken</div>
-                            <div style="font-weight:600;font-size:.9rem;" id="cpTests"></div>
+                        <div class="profile-stat">
+                            <div class="profile-stat-label">Tests Taken</div>
+                            <div class="profile-stat-value" id="cpTests"></div>
                         </div>
-                        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;flex:1;min-width:140px;">
-                            <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:4px;">Avg Score</div>
-                            <div style="font-weight:600;font-size:.9rem;" id="cpAvgScore"></div>
+                        <div class="profile-stat">
+                            <div class="profile-stat-label">Avg Score</div>
+                            <div class="profile-stat-value" id="cpAvgScore"></div>
                         </div>
                     </div>
 
@@ -837,73 +1074,95 @@
         </div>
 
         <!-- Test Sessions -->
-
-        <div class="section-header">
-            <div class="section-title">All Test Sessions</div>
-            <div class="toolbar">
-                <div class="search-wrap">
-                    <span class="search-icon">🔍</span>
-                    <input type="text" id="searchInput" placeholder="Search by name or email…"
-                        oninput="applyFilters()" />
+        <section class="admin-panel">
+            <div class="admin-panel-header">
+                <div class="admin-panel-copy">
+                    <div class="admin-panel-kicker">Sessions</div>
+                    <div class="section-title">All Test Sessions</div>
+                    <p>Filter the full assessment stream by module, score band, or person to review outcomes without losing the overall pace of the hiring cycle.</p>
                 </div>
-                <select id="moduleFilter" onchange="applyFilters()">
-                    <option value="">All Modules</option>
-                </select>
-                <select id="scoreFilter" onchange="applyFilters()">
-                    <option value="">All Scores</option>
-                    <option value="high">High (≥80%)</option>
-                    <option value="mid">Mid (60–79%)</option>
-                    <option value="low">Low (&lt;60%)</option>
-                </select>
-                <button class="btn-export" id="btnPdfReport" onclick="generatePDFReport()">📥 Full Report PDF</button>
-                <button class="btn-export" onclick="exportCSV()">⬇ Export CSV</button>
+                <div class="admin-panel-meta">
+                    <span class="admin-chip">Sortable</span>
+                    <span class="admin-chip">Export-ready</span>
+                </div>
             </div>
-        </div>
 
-        <div class="table-wrap">
-            <table id="resultsTable">
-                <thead>
-                    <tr>
-                        <th onclick="sortBy('candidate_name')" id="th-candidate_name">Candidate <span
-                                class="sort-icon">↕</span></th>
-                        <th onclick="sortBy('module_name')" id="th-module_name">Module <span class="sort-icon">↕</span>
-                        </th>
-                        <th onclick="sortBy('pct')" id="th-pct">Score <span class="sort-icon">↕</span></th>
-                        <th>Correct / Total</th>
-                        <th onclick="sortBy('submitted_at')" id="th-submitted_at">Date <span class="sort-icon">↕</span>
-                        </th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="resultsBody">
-                    <tr>
-                        <td colspan="6" class="empty-state"><span class="spinner"></span></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+            <div class="section-header">
+                <div class="toolbar">
+                    <div class="search-wrap">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="searchInput" placeholder="Search by name or email…"
+                            oninput="applyFilters()" />
+                    </div>
+                    <select id="moduleFilter" onchange="applyFilters()">
+                        <option value="">All Modules</option>
+                    </select>
+                    <select id="scoreFilter" onchange="applyFilters()">
+                        <option value="">All Scores</option>
+                        <option value="high">High (≥80%)</option>
+                        <option value="mid">Mid (60–79%)</option>
+                        <option value="low">Low (&lt;60%)</option>
+                    </select>
+                    <button class="btn-export" id="btnPdfReport" onclick="generatePDFReport()">📥 Full Report PDF</button>
+                    <button class="btn-export" onclick="exportCSV()">⬇ Export CSV</button>
+                </div>
+            </div>
 
-        <!-- ── Diagram Submissions Section ── -->
-        <div class="section-header" style="margin-top:36px;">
-            <div class="section-title">Diagram Submissions</div>
-        </div>
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Candidate</th>
-                        <th>Module</th>
-                        <th>Date</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="diagramBody">
-                    <tr>
-                        <td colspan="4" class="empty-state"><span class="spinner"></span></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+            <div class="table-wrap">
+                <table id="resultsTable">
+                    <thead>
+                        <tr>
+                            <th onclick="sortBy('candidate_name')" id="th-candidate_name">Candidate <span
+                                    class="sort-icon">↕</span></th>
+                            <th onclick="sortBy('module_name')" id="th-module_name">Module <span class="sort-icon">↕</span>
+                            </th>
+                            <th onclick="sortBy('pct')" id="th-pct">Score <span class="sort-icon">↕</span></th>
+                            <th>Correct / Total</th>
+                            <th onclick="sortBy('submitted_at')" id="th-submitted_at">Date <span class="sort-icon">↕</span>
+                            </th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody">
+                        <tr>
+                            <td colspan="6" class="empty-state"><span class="spinner"></span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <div class="admin-section-grid">
+            <!-- ── Diagram Submissions Section ── -->
+            <section class="admin-panel admin-compact-table">
+                <div class="admin-panel-header">
+                    <div class="admin-panel-copy">
+                        <div class="admin-panel-kicker">Artifacts</div>
+                        <div class="section-title">Diagram Submissions</div>
+                        <p>Open visual exercises, inspect whiteboard work, and archive or remove submissions without leaving the operations flow.</p>
+                    </div>
+                    <div class="admin-panel-meta">
+                        <span class="admin-chip">Whiteboard work</span>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Candidate</th>
+                                <th>Module</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="diagramBody">
+                            <tr>
+                                <td colspan="4" class="empty-state"><span class="spinner"></span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
 
         <!-- Diagram View Modal -->
         <div class="modal-overlay" id="diagramModalOverlay"
@@ -925,17 +1184,25 @@
             </div>
         </div>
 
-        <!-- ── Question Modules Section ── -->
-        <div class="section-header" style="margin-top:36px;">
-            <div class="section-title">Question Modules</div>
-            <div style="display:flex;gap:8px;">
-                <button class="btn-export" onclick="triggerModuleImport()">⬆ Import Module</button>
-                <input type="file" id="moduleImportInput" accept=".json,application/json" style="display:none;" onchange="handleModuleImport(event)" />
-                <button class="btn-export" id="btnNewModule" onclick="openNewModuleModal()">+ New Module</button>
-            </div>
+            <!-- ── Question Modules Section ── -->
+            <section class="admin-panel">
+                <div class="admin-panel-header">
+                    <div class="admin-panel-copy">
+                        <div class="admin-panel-kicker">Library</div>
+                        <div class="section-title">Question Modules</div>
+                        <p>Shape the assessment catalog here: activate modules, edit prompts, import backups, and expand the library without breaking the rhythm.</p>
+                    </div>
+                    <div class="admin-panel-meta">
+                        <button class="btn-export" onclick="triggerModuleImport()">⬆ Import Module</button>
+                        <input type="file" id="moduleImportInput" accept=".json,application/json" style="display:none;" onchange="handleModuleImport(event)" />
+                        <button class="btn-export" id="btnNewModule" onclick="openNewModuleModal()">+ New Module</button>
+                    </div>
+                </div>
+                <div class="module-grid" id="moduleGrid">
+                    <div style="color:var(--muted);font-size:.9rem;padding:20px 0;"><span class="spinner"></span></div>
+                </div>
+            </section>
         </div>
-        <div class="module-grid" id="moduleGrid">
-            <div style="color:var(--muted);font-size:.9rem;padding:20px 0;"><span class="spinner"></span></div>
         </div>
     </main>
 
@@ -1895,7 +2162,7 @@
                                 <button class="q-act-btn del" onclick="deleteQuestion(${q.id})">🗑</button>
                             </div>
                         </div>
-                        <div class="q-correct-pill" style="background:rgba(124,92,252,.1);border-color:rgba(124,92,252,.25);color:#a78bfa;">✏️ Open-ended</div>
+                        <div class="q-correct-pill" style="background:rgba(124,92,252,.1);border-color:rgba(124,92,252,.25);color:#e0b88a;">✏️ Open-ended</div>
                         <div class="q-edit-form" id="qf-${q.id}">
                             <div class="form-row">
                                 <label class="form-label">Question Text</label>
@@ -2267,7 +2534,7 @@
                 doc.setTextColor(255, 255, 255);
                 doc.setFontSize(22);
                 doc.setFont('helvetica', 'bold');
-                doc.text('Assessment Portal', MARGIN, 22);
+                doc.text('Intrviewz', MARGIN, 22);
                 doc.setFontSize(12);
                 doc.setFont('helvetica', 'normal');
                 doc.text('Full Candidate Report', MARGIN, 32);
@@ -2501,7 +2768,7 @@
                         doc.setFont('helvetica', 'normal');
                         doc.setFontSize(7.5);
                         doc.setTextColor(...MID);
-                        doc.text(`Assessment Portal Report  ·  ${genDate}`, MARGIN, 292);
+                        doc.text(`Intrviewz Report  ·  ${genDate}`, MARGIN, 292);
                         doc.text(`Page ${p} of ${totalPages}`, W - MARGIN, 292, { align: 'right' });
                     }
                 }
@@ -2735,7 +3002,7 @@
                 doc.setTextColor(255, 255, 255);
                 doc.setFontSize(22);
                 doc.setFont('helvetica', 'bold');
-                doc.text('Assessment Portal', MARGIN, 22);
+                doc.text('Intrviewz', MARGIN, 22);
                 doc.setFontSize(12);
                 doc.setFont('helvetica', 'normal');
                 doc.text(`Individual Report – ${c.name}`, MARGIN, 32);
@@ -2918,7 +3185,7 @@
                     doc.setFont('helvetica', 'normal');
                     doc.setFontSize(7.5);
                     doc.setTextColor(...MID);
-                    doc.text(`Assessment Portal Report  ·  ${genDate}`, MARGIN, 292);
+                    doc.text(`Intrviewz Report  ·  ${genDate}`, MARGIN, 292);
                     doc.text(`Page ${p} of ${totalPages}`, W - MARGIN, 292, { align: 'right' });
                 }
 

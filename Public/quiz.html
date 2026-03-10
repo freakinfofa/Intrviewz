@@ -1,186 +1,149 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Assessment – Assessment Portal</title>
+    <title>Assessment – Intrviewz</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;1,8..60,400&family=Space+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/styles.css" />
     <style>
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        :root {
-            --bg: #0f1117;
-            --surface: #1a1d27;
-            --surface2: #22263a;
-            --border: #2e3350;
-            --accent: #4f8ef7;
-            --accent2: #7c5cfc;
-            --success: #22c55e;
-            --danger: #ef4444;
-            --text: #e8eaf6;
-            --muted: #8b90b0;
-            --radius: 14px;
-        }
-
         body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
+            font-size: var(--text-base);
+        }
+
+        /* ── Progress Bar (Top) ── */
+        .progress-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+
+        .progress-track {
+            height: 4px;
+            background: var(--border);
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            transition: width var(--transition-slow);
+        }
+
+        /* ── Top Bar ── */
+        .top-bar {
             display: flex;
             align-items: center;
-            justify-content: center;
-            padding: 24px;
-            background-image:
-                radial-gradient(ellipse 80% 60% at 20% 10%, rgba(79, 142, 247, .12) 0%, transparent 60%),
-                radial-gradient(ellipse 60% 50% at 80% 90%, rgba(124, 92, 252, .10) 0%, transparent 60%);
-        }
-
-        .screen {
-            display: none;
-            width: 100%;
-            max-width: 760px;
-            animation: fadeIn .35s ease;
-        }
-
-        .screen.active {
-            display: block;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(14px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .card {
+            justify-content: space-between;
+            padding: var(--space-3) var(--space-5);
             background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 40px 48px 36px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, .45);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .top-bar-left {
+            display: flex;
+            align-items: center;
+            gap: var(--space-4);
         }
 
         .back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--muted);
-            font-size: .82rem;
+            font-family: var(--font-display);
+            font-size: var(--text-xs);
+            font-weight: 500;
+            color: var(--text-tertiary);
             text-decoration: none;
-            margin-bottom: 24px;
-            transition: color .2s;
         }
 
         .back-link:hover {
             color: var(--text);
         }
 
-        .quiz-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 28px;
+        .module-title {
+            font-family: var(--font-display);
+            font-size: var(--text-sm);
+            font-weight: 600;
         }
 
-        .q-counter {
-            font-size: .85rem;
-            color: var(--muted);
+        .candidate-info {
+            font-family: var(--font-display);
+            font-size: var(--text-sm);
+            color: var(--text-tertiary);
+        }
+
+        .candidate-info span {
+            color: var(--text);
             font-weight: 500;
         }
 
-        .q-counter span {
-            color: var(--text);
-            font-weight: 700;
+        /* ── Main Layout ── */
+        .quiz-layout {
+            min-height: calc(100vh - 65px);
+            margin-top: 65px;
         }
 
-        .candidate-tag {
-            font-size: .82rem;
-            color: var(--muted);
+        .quiz-main {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: var(--space-8) var(--space-6);
         }
 
-        .candidate-tag span {
-            color: var(--accent);
-            font-weight: 600;
-        }
-
-        .progress-track {
-            height: 4px;
-            background: var(--surface2);
-            border-radius: 4px;
-            margin-bottom: 32px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent), var(--accent2));
-            border-radius: 4px;
-            transition: width .4s cubic-bezier(.4, 0, .2, 1);
+        /* ── Question ── */
+        .question-counter {
+            font-family: var(--font-display);
+            font-size: var(--text-sm);
+            color: var(--text-tertiary);
+            margin-bottom: var(--space-6);
         }
 
         .question-text {
-            font-size: 1.1rem;
-            font-weight: 600;
-            line-height: 1.6;
-            margin-bottom: 24px;
+            font-family: var(--font-display);
+            font-size: var(--text-lg);
+            font-weight: 500;
+            line-height: 1.4;
+            margin-bottom: var(--space-6);
         }
 
+        /* ── Options ── */
         .options {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: var(--space-3);
         }
 
         .option {
             display: flex;
             align-items: center;
-            gap: 14px;
-            padding: 15px 20px;
-            background: var(--surface2);
-            border: 1.5px solid var(--border);
-            border-radius: 10px;
+            gap: var(--space-3);
+            padding: var(--space-4);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
             cursor: pointer;
-            transition: all .18s;
+            transition: border-color var(--transition-fast);
             user-select: none;
         }
 
         .option:hover {
             border-color: var(--accent);
-            background: rgba(79, 142, 247, .07);
         }
 
         .option.selected {
             border-color: var(--accent);
-            background: rgba(79, 142, 247, .13);
+            background: var(--accent-alpha);
         }
 
         .option-radio {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
+            width: 18px;
+            height: 18px;
             border: 2px solid var(--border);
+            border-radius: 50%;
             flex-shrink: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all .18s;
         }
 
         .option.selected .option-radio {
@@ -190,12 +153,11 @@
 
         .option-radio::after {
             content: '';
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
-            background: #fff;
+            background: white;
             opacity: 0;
-            transition: opacity .15s;
         }
 
         .option.selected .option-radio::after {
@@ -203,135 +165,123 @@
         }
 
         .option-label {
-            font-size: .97rem;
+            font-size: var(--text-base);
+            line-height: 1.5;
         }
 
+        /* ── Open-ended Input ── */
         .open-ended-input {
             width: 100%;
-            background: var(--surface2);
-            border: 1.5px solid var(--border);
-            border-radius: 10px;
-            padding: 16px 20px;
+            font-family: var(--font-body);
+            font-size: var(--text-base);
+            line-height: 1.7;
+            padding: var(--space-6);
+            background: var(--surface);
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
             color: var(--text);
-            font-family: inherit;
-            font-size: .95rem;
-            line-height: 1.6;
             resize: vertical;
-            min-height: 120px;
+            min-height: 200px;
             outline: none;
-            transition: border-color .18s, background .18s;
+            transition: all var(--transition-fast);
         }
 
         .open-ended-input:focus {
             border-color: var(--accent);
-            background: rgba(79, 142, 247, .07);
+            box-shadow: 0 0 0 4px var(--accent-alpha);
         }
 
         .open-ended-input::placeholder {
-            color: var(--muted);
+            color: var(--text-muted);
         }
 
+        /* ── Navigation ── */
         .quiz-nav {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-top: 32px;
+            margin-top: var(--space-6);
+            padding-top: var(--space-5);
+            border-top: 1px solid var(--border);
         }
 
-        .dots {
+        .quiz-nav .btn {
+            padding: var(--space-3) var(--space-5);
+        }
+            border-color: var(--text);
+            color: var(--text);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* ── Question Navigator (Simplified) ── */
+        .quiz-sidebar {
+            display: none;
+        }
+            background: var(--surface);
+            border-color: var(--text);
+            color: var(--text);
+        }
+
+        /* ── Submit Section ── */
+        .submit-section {
+            display: none;
+            text-align: center;
+            padding: var(--space-10) 0;
+        }
+
+        .submit-section.visible {
+            display: block;
+            animation: fadeIn var(--transition);
+        }
+
+        .submit-note {
+            font-family: var(--font-body);
+            font-size: var(--text-base);
+            color: var(--text-secondary);
+            margin-bottom: var(--space-6);
+        }
+
+        /* ── Loading & Saving States ── */
+        .loading-state {
             display: flex;
-            gap: 7px;
-            flex-wrap: wrap;
-            justify-content: center;
-            flex: 1;
-        }
-
-        .dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: var(--border);
-            cursor: pointer;
-            transition: all .2s;
-        }
-
-        .dot.current {
-            background: var(--accent);
-            transform: scale(1.3);
-        }
-
-        .dot.answered {
-            background: var(--muted);
-        }
-
-        .btn {
-            display: inline-flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            padding: 14px 32px;
-            border-radius: 10px;
-            font-size: .95rem;
-            font-weight: 600;
-            font-family: inherit;
-            cursor: pointer;
-            border: none;
-            transition: all .2s;
+            min-height: calc(100vh - 65px);
+            gap: var(--space-5);
+            color: var(--text-tertiary);
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, var(--accent), var(--accent2));
-            color: #fff;
-            box-shadow: 0 4px 18px rgba(79, 142, 247, .35);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 24px rgba(79, 142, 247, .5);
-        }
-
-        .btn-primary:disabled {
-            opacity: .45;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .btn-ghost {
-            background: var(--surface2);
-            color: var(--text);
-            border: 1px solid var(--border);
-        }
-
-        .btn-ghost:hover {
-            background: var(--border);
-        }
-
-        .btn-ghost:disabled {
-            opacity: .4;
-            cursor: not-allowed;
-        }
-
-        .btn-icon {
-            width: 44px;
-            height: 44px;
-            padding: 0;
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
             border-radius: 50%;
-            font-size: 1.1rem;
+            animation: spin 0.7s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
         .saving-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(15, 17, 23, .85);
+            background: color-mix(in oklab, var(--bg) 95%, transparent);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 16px;
-            z-index: 50;
+            gap: var(--space-4);
+            z-index: 200;
             opacity: 0;
             pointer-events: none;
-            transition: opacity .3s;
+            transition: opacity var(--transition);
         }
 
         .saving-overlay.show {
@@ -339,82 +289,104 @@
             pointer-events: all;
         }
 
-        .saving-overlay .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid var(--border);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin .7s linear infinite;
+        /* ── Toast ── */
+        .toast {
+            position: fixed;
+            bottom: var(--space-6);
+            right: var(--space-6);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: var(--space-3) var(--space-5);
+            font-family: var(--font-display);
+            font-size: var(--text-sm);
+            font-weight: 500;
+            color: var(--success);
+            box-shadow: var(--shadow);
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all var(--transition);
+            z-index: 150;
         }
 
-        .loading-state {
-            text-align: center;
-            padding: 60px 0;
-            color: var(--muted);
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
         }
 
-        .loading-state .spinner {
-            width: 36px;
-            height: 36px;
-            border: 3px solid var(--border);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin .7s linear infinite;
-            margin: 0 auto 16px;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
+        /* ── Responsive ── */
         @media (max-width: 600px) {
-            .card {
-                padding: 28px 20px 24px;
+            .top-bar {
+                padding: var(--space-3) var(--space-4);
+            }
+
+            .module-title {
+                display: none;
             }
         }
     </style>
 </head>
-
 <body>
-
-    <div class="saving-overlay" id="savingOverlay">
-        <div class="spinner"></div>
-        <p id="savingMsg">Saving your results…</p>
+    <!-- Progress Bar -->
+    <div class="progress-header">
+        <div class="progress-track">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
     </div>
 
-    <div id="quiz" class="screen active">
-        <div class="card">
-            <a class="back-link" href="dashboard.html">← Back to Dashboard</a>
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <a href="dashboard.html" class="back-link">← Back</a>
+            <span class="module-title" id="moduleTitle">Assessment</span>
+        </div>
+        <div class="candidate-info">
+            Candidate: <span id="candidateTag">—</span>
+        </div>
+    </div>
 
+    <!-- Main Layout -->
+    <div class="quiz-layout">
+        <div class="quiz-main">
+            <!-- Loading State -->
             <div id="loadingState" class="loading-state">
                 <div class="spinner"></div>
-                <p>Loading questions…</p>
+                <p>Loading questions...</p>
             </div>
 
-            <div id="quizContent" style="display:none;">
-                <div class="quiz-header">
-                    <div class="q-counter">Question <span id="qNum">1</span> of <span id="qTotal">—</span></div>
-                    <div class="candidate-tag">Candidate: <span id="candidateTag">—</span></div>
+            <!-- Quiz Content -->
+            <div id="quizContent" style="display: none;">
+                <div class="question-container">
+                    <div class="question-counter">
+                        Question <span id="qNum">1</span> of <span id="qTotal">—</span>
+                    </div>
+                    <div class="question-text" id="questionText"></div>
+                    <div class="options" id="optionsContainer"></div>
                 </div>
-                <div class="progress-track">
-                    <div class="progress-fill" id="progressFill" style="width:5%;"></div>
-                </div>
-                <div class="question-text" id="questionText"></div>
-                <div class="options" id="optionsContainer"></div>
+
                 <div class="quiz-nav">
-                    <button class="btn btn-icon btn-ghost" id="prevBtn" onclick="navigate(-1)">&#8592;</button>
-                    <div class="dots" id="dotsContainer"></div>
-                    <button class="btn btn-icon btn-ghost" id="nextBtn" onclick="navigate(1)">&#8594;</button>
+                    <button class="btn btn-secondary" id="prevBtn" onclick="navigate(-1)">
+                        ← Previous
+                    </button>
+                    <button class="btn btn-secondary" id="nextBtn" onclick="navigate(1)">
+                        Next →
+                    </button>
                 </div>
-                <div style="text-align:center; margin-top:28px;">
-                    <button class="btn btn-primary" id="submitBtn" onclick="submitQuiz()" style="display:none;">Submit
-                        Test ✓</button>
+
+                <div class="submit-section" id="submitSection">
+                    <p class="submit-note">You've reached the last question. Ready to submit?</p>
+                    <button class="btn btn-primary" onclick="submitQuiz()">
+                        Submit Assessment
+                    </button>
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Saving Overlay -->
+    <div class="saving-overlay" id="savingOverlay">
+        <div class="spinner"></div>
+        <p id="savingMsg">Saving your results...</p>
     </div>
 
     <script>
@@ -422,20 +394,22 @@
         const candidateId = sessionStorage.getItem('candidateId') || 'guest';
         const candidateName = sessionStorage.getItem('candidateName') || 'Candidate';
 
-        if (!candidateId || candidateId === 'guest') window.location.href = 'index.html';
+        if (!candidateId || candidateId === 'guest') {
+            window.location.href = 'index.html';
+        }
 
-        // Read module ID from ?module=<id> query param
         const params = new URLSearchParams(window.location.search);
         const MODULE_ID = params.get('module');
 
         if (!MODULE_ID) {
-            document.getElementById('loadingState').innerHTML =
-                '<p style="color:var(--danger)">No module specified. <a href="dashboard.html" style="color:var(--accent)">Go back</a>.</p>';
+            document.getElementById('loadingState').innerHTML = `
+                <p style="color: var(--danger)">No module specified. 
+                <a href="dashboard.html" style="color: var(--accent)">Go back</a>.</p>
+            `;
         }
 
-        let MODULE_NAME = MODULE_ID; // will be updated from API if available
+        let MODULE_NAME = MODULE_ID;
         const SAVE_KEY = `progress_${candidateId}_${MODULE_ID}`;
-
         let questions = [];
         let userAnswers = [];
         let current = 0;
@@ -443,30 +417,39 @@
 
         async function init() {
             if (!MODULE_ID) return;
+            
             try {
-                // Fetch questions for this module
                 const res = await fetch(`${API}/questions/${MODULE_ID}`, {
                     headers: { 'Content-Type': 'application/json' }
                 });
-                if (!res.ok) { window.location.href = 'index.html'; return; }
+                
+                if (!res.ok) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+                
                 questions = await res.json();
 
                 if (!questions.length) {
-                    document.getElementById('loadingState').innerHTML =
-                        '<p style="color:var(--danger)">This module has no questions yet.</p>';
+                    document.getElementById('loadingState').innerHTML = `
+                        <p>This module has no questions yet.</p>
+                    `;
                     return;
                 }
 
-                // Try to get the module name from the modules list
+                // Get module name
                 try {
-                    const mr = await fetch(`${API}/modules`, { headers: { 'Content-Type': 'application/json' } });
+                    const mr = await fetch(`${API}/modules`, { 
+                        headers: { 'Content-Type': 'application/json' } 
+                    });
                     const mods = await mr.json();
                     const mod = mods.find(m => m.id === MODULE_ID);
                     if (mod) {
                         MODULE_NAME = mod.name;
-                        document.title = `${MODULE_NAME} – Assessment Portal`;
+                        document.getElementById('moduleTitle').textContent = MODULE_NAME;
+                        document.title = `${MODULE_NAME} – Intrviewz`;
                     }
-                } catch { /* non-fatal */ }
+                } catch { }
 
                 userAnswers = new Array(questions.length).fill(null);
 
@@ -476,7 +459,7 @@
                     if (saved && Array.isArray(saved) && saved.length === questions.length) {
                         userAnswers = saved;
                     }
-                } catch { /* ignore corrupt data */ }
+                } catch { }
 
                 document.getElementById('candidateTag').textContent = candidateName;
                 document.getElementById('qTotal').textContent = questions.length;
@@ -486,51 +469,62 @@
                 buildDots();
                 renderQuestion(0);
             } catch {
-                document.getElementById('loadingState').innerHTML =
-                    '<p style="color:var(--danger)">Failed to load questions. Please refresh or <a href="dashboard.html" style="color:var(--accent)">go back</a>.</p>';
+                document.getElementById('loadingState').innerHTML = `
+                    <p>Failed to load questions. Please 
+                    <a href="dashboard.html" style="color: var(--accent)">go back</a> 
+                    and try again.</p>
+                `;
             }
         }
 
         function saveProgress() {
-            try { localStorage.setItem(SAVE_KEY, JSON.stringify(userAnswers)); } catch { }
+            try {
+                localStorage.setItem(SAVE_KEY, JSON.stringify(userAnswers));
+            } catch { }
         }
 
-        function showSavedToast() {
+        function showToast() {
             let toast = document.getElementById('savedToast');
             if (!toast) {
                 toast = document.createElement('div');
                 toast.id = 'savedToast';
-                toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:rgba(34,197,94,.15);color:#86efac;border:1px solid rgba(34,197,94,.3);border-radius:9px;padding:7px 16px;font-size:.8rem;font-weight:600;z-index:99;opacity:0;transition:opacity .25s;pointer-events:none;';
-                toast.textContent = '✓ Progress saved';
+                toast.className = 'toast';
+                toast.textContent = 'Progress saved';
                 document.body.appendChild(toast);
             }
-            toast.style.opacity = '1';
+            
+            toast.classList.add('show');
             clearTimeout(saveTimer);
-            saveTimer = setTimeout(() => { toast.style.opacity = '0'; }, 1500);
+            saveTimer = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 1500);
+        }
+
+        function updateProgress() {
+            const percentage = ((current + 1) / questions.length) * 100;
+            document.getElementById('progressFill').style.width = `${percentage}%`;
         }
 
         function renderQuestion(idx) {
             current = idx;
             const q = questions[idx];
+            
             document.getElementById('qNum').textContent = idx + 1;
             document.getElementById('questionText').textContent = `Q${idx + 1}. ${q.question || q.q}`;
-            document.getElementById('progressFill').style.width =
-                `${Math.round(((idx + 1) / questions.length) * 100)}%`;
+            
+            updateProgress();
 
             const container = document.getElementById('optionsContainer');
             container.innerHTML = '';
             
-            // Check if this is an open-ended question
             const isOpenEnded = q.question_type === 'open_ended';
             
             if (isOpenEnded) {
-                // Render textarea for open-ended questions
                 const textarea = document.createElement('textarea');
                 textarea.className = 'open-ended-input';
                 textarea.placeholder = 'Enter your answer here...';
                 textarea.value = userAnswers[idx] || '';
                 
-                // Auto-save as user types
                 const autoSave = () => {
                     userAnswers[idx] = textarea.value.trim() || null;
                     saveProgress();
@@ -538,59 +532,73 @@
                 };
                 
                 textarea.addEventListener('input', () => {
-                    // Debounce save
                     clearTimeout(saveTimer);
                     saveTimer = setTimeout(autoSave, 500);
                 });
                 
                 textarea.addEventListener('blur', autoSave);
-                
                 container.appendChild(textarea);
-                // Focus on load
+                
                 setTimeout(() => textarea.focus(), 50);
             } else {
-                // questions from DB may be sent with `opts` array or `opt0...3` fields
                 const opts = q.opts || [q.opt0, q.opt1, q.opt2, q.opt3].filter(Boolean);
+                
                 opts.forEach((opt, i) => {
-                    const div = document.createElement('div');
-                    div.className = 'option' + (userAnswers[idx] === i ? ' selected' : '');
-                    div.innerHTML = `<div class="option-radio"></div><span class="option-label">${opt}</span>`;
-                    div.addEventListener('click', () => {
+                    const option = document.createElement('div');
+                    option.className = 'option' + (userAnswers[idx] === i ? ' selected' : '');
+                    option.innerHTML = `
+                        <div class="option-radio"></div>
+                        <span class="option-label">${opt}</span>
+                    `;
+                    
+                    option.addEventListener('click', () => {
                         userAnswers[idx] = i;
                         saveProgress();
-                        showSavedToast();
+                        showToast();
                         renderQuestion(idx);
                     });
-                    container.appendChild(div);
+                    
+                    container.appendChild(option);
                 });
             }
 
             document.getElementById('prevBtn').disabled = idx === 0;
             document.getElementById('nextBtn').disabled = idx === questions.length - 1;
-            document.getElementById('submitBtn').style.display =
-                idx === questions.length - 1 ? 'inline-flex' : 'none';
+            
+            const submitSection = document.getElementById('submitSection');
+            if (idx === questions.length - 1) {
+                submitSection.classList.add('visible');
+            } else {
+                submitSection.classList.remove('visible');
+            }
+            
             updateDots();
         }
 
         function navigate(dir) {
             const next = current + dir;
-            if (next >= 0 && next < questions.length) renderQuestion(next);
+            if (next >= 0 && next < questions.length) {
+                renderQuestion(next);
+            }
         }
 
         function buildDots() {
             const container = document.getElementById('dotsContainer');
             container.innerHTML = '';
+            
             questions.forEach((_, i) => {
                 const dot = document.createElement('div');
-                dot.className = 'dot'; dot.id = `dot-${i}`; dot.title = `Q${i + 1}`;
-                dot.addEventListener('click', () => renderQuestion(i));
+                dot.className = 'dot';
+                dot.textContent = i + 1;
+                dot.title = `Question ${i + 1}`;
+                dot.onclick = () => renderQuestion(i);
                 container.appendChild(dot);
             });
         }
 
         function updateDots() {
             questions.forEach((_, i) => {
-                const dot = document.getElementById(`dot-${i}`);
+                const dot = document.getElementById('dotsContainer').children[i];
                 dot.className = 'dot';
                 if (userAnswers[i] !== null) dot.classList.add('answered');
                 if (i === current) dot.classList.add('current');
@@ -599,14 +607,17 @@
 
         async function submitQuiz() {
             const unanswered = userAnswers.filter(a => a === null).length;
-            if (unanswered > 0 && !confirm(`${unanswered} question(s) unanswered. Submit anyway?`)) return;
+            
+            if (unanswered > 0) {
+                if (!confirm(`${unanswered} question(s) unanswered. Submit anyway?`)) return;
+            }
 
             document.getElementById('savingOverlay').classList.add('show');
 
-            // Map answers to the format /api/submit expects
             const answers = questions.map((q, i) => {
                 const isOpenEnded = q.question_type === 'open_ended';
                 const opts = q.opts || [q.opt0, q.opt1, q.opt2, q.opt3].filter(Boolean);
+                
                 return {
                     question_index: i,
                     chosen_option: userAnswers[i] !== null 
@@ -620,20 +631,34 @@
                 const res = await fetch(`${API}/submit`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ moduleId: MODULE_ID, moduleName: MODULE_NAME, answers })
+                    body: JSON.stringify({ 
+                        moduleId: MODULE_ID, 
+                        moduleName: MODULE_NAME, 
+                        answers 
+                    })
                 });
+                
                 if (!res.ok) throw new Error('Server error');
+                
                 localStorage.removeItem(SAVE_KEY);
-                document.getElementById('savingMsg').textContent = 'Results saved! Redirecting…';
-                setTimeout(() => { window.location.href = 'dashboard.html'; }, 1200);
+                document.getElementById('savingMsg').textContent = 'Assessment submitted! Redirecting...';
+                
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1200);
             } catch {
                 document.getElementById('savingOverlay').classList.remove('show');
-                alert('Failed to save results. Please try again.');
+                alert('Failed to submit. Please try again.');
             }
         }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' && current > 0) navigate(-1);
+            if (e.key === 'ArrowRight' && current < questions.length - 1) navigate(1);
+        });
 
         init();
     </script>
 </body>
-
 </html>
